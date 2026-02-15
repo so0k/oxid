@@ -1,0 +1,409 @@
+use std::collections::HashMap;
+
+use anyhow::{bail, Result};
+use petgraph::graph::{DiGraph, NodeIndex};
+
+use crate::config::types::{Expression, ResourceConfig, WorkspaceConfig};
+
+/// A node in the resource-level dependency graph.
+#[derive(Debug, Clone)]
+pub enum DagNode {
+    Resource {
+        address: String,
+        resource_type: String,
+        name: String,
+        provider_source: String,
+        config: ResourceConfig,
+    },
+    DataSource {
+        address: String,
+        resource_type: String,
+        name: String,
+        provider_source: String,
+        config: ResourceConfig,
+    },
+    Output {
+        name: String,
+        module_path: String,
+    },
+}
+
+impl DagNode {
+    pub fn address(&self) -> &str {
+        match self {
+            DagNode::Resource { address, .. } => address,
+            DagNode::DataSource { address, .. } => address,
+            DagNode::Output { name, .. } => name,
+        }
+    }
+}
+
+/// The type of dependency between nodes.
+#[derive(Debug, Clone)]
+pub enum DependencyEdge {
+    /// Explicitly declared via `depends_on`.
+    Explicit,
+    /// Inferred from expression references (e.g. `aws_vpc.main.id`).
+    Implicit,
+    /// Data source dependency (data sources run during planning).
+    DataDependency,
+    /// Provider dependency (provider must be configured first).
+    ProviderDep,
+}
+
+/// A resource-level dependency graph.
+pub type ResourceGraph = DiGraph<DagNode, DependencyEdge>;
+
+/// Build a resource-level dependency graph from a WorkspaceConfig.
+///
+/// This replaces the module-level DAG with individual resource nodes,
+/// enabling resource-level parallelism during plan and apply.
+pub fn build_resource_dag(
+    workspace: &WorkspaceConfig,
+    provider_map: &HashMap<String, String>, // provider local name -> source (e.g. "aws" -> "hashicorp/aws")
+) -> Result<(ResourceGraph, HashMap<String, NodeIndex>)> {
+    let mut graph = DiGraph::new();
+    let mut node_map: HashMap<String, NodeIndex> = HashMap::new();
+
+    // Add all resources as nodes
+    for resource in &workspace.resources {
+        let address = format!("{}.{}", resource.resource_type, resource.name);
+        let provider_source = resolve_provider_source(resource, provider_map);
+
+        let node = DagNode::Resource {
+            address: address.clone(),
+            resource_type: resource.resource_type.clone(),
+            name: resource.name.clone(),
+            provider_source,
+            config: resource.clone(),
+        };
+        let idx = graph.add_node(node);
+        node_map.insert(address, idx);
+    }
+
+    // Add all data sources as nodes
+    for data_source in &workspace.data_sources {
+        let address = format!("data.{}.{}", data_source.resource_type, data_source.name);
+        let provider_source = resolve_provider_source(data_source, provider_map);
+
+        let node = DagNode::DataSource {
+            address: address.clone(),
+            resource_type: data_source.resource_type.clone(),
+            name: data_source.name.clone(),
+            provider_source,
+            config: data_source.clone(),
+        };
+        let idx = graph.add_node(node);
+        node_map.insert(address, idx);
+    }
+
+    // Add output nodes
+    for output in &workspace.outputs {
+        let node = DagNode::Output {
+            name: output.name.clone(),
+            module_path: String::new(),
+        };
+        let idx = graph.add_node(node);
+        node_map.insert(format!("output.{}", output.name), idx);
+    }
+
+    // Add explicit dependencies (depends_on)
+    for resource in workspace.resources.iter().chain(workspace.data_sources.iter()) {
+        let is_data = workspace.data_sources.iter().any(|d| {
+            d.resource_type == resource.resource_type && d.name == resource.name
+        });
+        let address = if is_data {
+            format!("data.{}.{}", resource.resource_type, resource.name)
+        } else {
+            format!("{}.{}", resource.resource_type, resource.name)
+        };
+
+        let to_idx = match node_map.get(&address) {
+            Some(idx) => *idx,
+            None => continue,
+        };
+
+        for dep in &resource.depends_on {
+            if let Some(&from_idx) = node_map.get(dep) {
+                graph.add_edge(from_idx, to_idx, DependencyEdge::Explicit);
+            }
+        }
+
+        // Extract implicit dependencies from expressions
+        let refs = extract_references_from_attributes(&resource.attributes);
+        for ref_address in &refs {
+            if let Some(&from_idx) = node_map.get(ref_address) {
+                if from_idx != to_idx {
+                    graph.add_edge(from_idx, to_idx, DependencyEdge::Implicit);
+                }
+            }
+        }
+    }
+
+    // Add output dependencies
+    for output in &workspace.outputs {
+        let output_address = format!("output.{}", output.name);
+        if let Some(&to_idx) = node_map.get(&output_address) {
+            // Explicit depends_on
+            for dep in &output.depends_on {
+                if let Some(&from_idx) = node_map.get(dep) {
+                    graph.add_edge(from_idx, to_idx, DependencyEdge::Explicit);
+                }
+            }
+
+            // Implicit from value expression
+            let refs = extract_references_from_expression(&output.value);
+            for ref_address in &refs {
+                if let Some(&from_idx) = node_map.get(ref_address) {
+                    graph.add_edge(from_idx, to_idx, DependencyEdge::Implicit);
+                }
+            }
+        }
+    }
+
+    // Verify no cycles
+    if petgraph::algo::is_cyclic_directed(&graph) {
+        bail!("Circular dependency detected in resource graph");
+    }
+
+    Ok((graph, node_map))
+}
+
+/// Extract resource references from a map of attributes.
+fn extract_references_from_attributes(
+    attrs: &HashMap<String, Expression>,
+) -> Vec<String> {
+    let mut refs = Vec::new();
+    for expr in attrs.values() {
+        refs.extend(extract_references_from_expression(expr));
+    }
+    refs
+}
+
+/// Extract resource addresses referenced in an expression.
+/// e.g. Reference(["aws_vpc", "main", "id"]) → "aws_vpc.main"
+fn extract_references_from_expression(expr: &Expression) -> Vec<String> {
+    let mut refs = Vec::new();
+    collect_references(expr, &mut refs);
+    refs
+}
+
+fn collect_references(expr: &Expression, refs: &mut Vec<String>) {
+    match expr {
+        Expression::Reference(parts) => {
+            if parts.len() >= 2 {
+                let first = &parts[0];
+                // Skip "var.", "local.", "each.", "count.", "path.", "terraform."
+                match first.as_str() {
+                    "var" | "local" | "each" | "count" | "path" | "terraform" | "self" => {}
+                    "data" if parts.len() >= 3 => {
+                        refs.push(format!("data.{}.{}", parts[1], parts[2]));
+                    }
+                    "module" if parts.len() >= 2 => {
+                        // Module references are tracked but don't resolve to
+                        // individual resource addresses (modules are opaque).
+                    }
+                    _ => {
+                        // resource_type.name pattern
+                        refs.push(format!("{}.{}", parts[0], parts[1]));
+                    }
+                }
+            }
+        }
+        Expression::Literal(val) => {
+            // Scan literal values for embedded ${...} references (from nested blocks)
+            collect_references_from_value(val, refs);
+        }
+        Expression::FunctionCall { args, .. } => {
+            for arg in args {
+                collect_references(arg, refs);
+            }
+        }
+        Expression::Conditional {
+            condition,
+            true_val,
+            false_val,
+        } => {
+            collect_references(condition, refs);
+            collect_references(true_val, refs);
+            collect_references(false_val, refs);
+        }
+        Expression::ForExpr {
+            collection,
+            key_expr,
+            value_expr,
+            condition,
+            ..
+        } => {
+            collect_references(collection, refs);
+            if let Some(k) = key_expr {
+                collect_references(k, refs);
+            }
+            collect_references(value_expr, refs);
+            if let Some(c) = condition {
+                collect_references(c, refs);
+            }
+        }
+        Expression::Template(parts) => {
+            for part in parts {
+                match part {
+                    crate::config::types::TemplatePart::Interpolation(e) => {
+                        collect_references(e, refs);
+                    }
+                    crate::config::types::TemplatePart::Directive(e) => {
+                        collect_references(e, refs);
+                    }
+                    crate::config::types::TemplatePart::Literal(_) => {}
+                }
+            }
+        }
+        Expression::Index { collection, key } => {
+            collect_references(collection, refs);
+            collect_references(key, refs);
+        }
+        Expression::GetAttr { object, .. } => {
+            collect_references(object, refs);
+        }
+        Expression::BinaryOp { left, right, .. } => {
+            collect_references(left, refs);
+            collect_references(right, refs);
+        }
+        Expression::UnaryOp { operand, .. } => {
+            collect_references(operand, refs);
+        }
+        Expression::Splat { source, each } => {
+            collect_references(source, refs);
+            collect_references(each, refs);
+        }
+    }
+}
+
+/// Extract resource references from `${...}` interpolation strings embedded in literal values.
+/// This handles nested blocks (like `route { gateway_id = aws_internet_gateway.main.id }`)
+/// which get parsed as Literal values containing `${type.name.attr}` strings.
+fn collect_references_from_value(val: &crate::config::types::Value, refs: &mut Vec<String>) {
+    use crate::config::types::Value;
+    match val {
+        Value::String(s) => {
+            // Scan for ${...} patterns
+            let mut remaining = s.as_str();
+            while let Some(start) = remaining.find("${") {
+                if let Some(end) = remaining[start + 2..].find('}') {
+                    let ref_str = &remaining[start + 2..start + 2 + end];
+                    let parts: Vec<&str> = ref_str.split('.').collect();
+                    if parts.len() >= 2 {
+                        match parts[0] {
+                            "var" | "local" | "each" | "count" | "path" | "terraform" | "self" => {}
+                            "data" if parts.len() >= 3 => {
+                                refs.push(format!("data.{}.{}", parts[1], parts[2]));
+                            }
+                            _ => {
+                                refs.push(format!("{}.{}", parts[0], parts[1]));
+                            }
+                        }
+                    }
+                    remaining = &remaining[start + 2 + end + 1..];
+                } else {
+                    break;
+                }
+            }
+        }
+        Value::List(items) => {
+            for item in items {
+                collect_references_from_value(item, refs);
+            }
+        }
+        Value::Map(entries) => {
+            for (_, v) in entries {
+                collect_references_from_value(v, refs);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Resolve the provider source for a resource.
+/// Uses `provider_ref` if set, otherwise derives from resource type prefix.
+fn resolve_provider_source(
+    resource: &ResourceConfig,
+    provider_map: &HashMap<String, String>,
+) -> String {
+    if let Some(ref provider_ref) = resource.provider_ref {
+        // Strip alias: "aws.west" → "aws"
+        let base = provider_ref.split('.').next().unwrap_or(provider_ref);
+        provider_map
+            .get(base)
+            .cloned()
+            .unwrap_or_else(|| format!("hashicorp/{}", base))
+    } else {
+        // Derive from resource type: "aws_vpc" → "aws"
+        let prefix = resource
+            .resource_type
+            .split('_')
+            .next()
+            .unwrap_or(&resource.resource_type);
+        provider_map
+            .get(prefix)
+            .cloned()
+            .unwrap_or_else(|| format!("hashicorp/{}", prefix))
+    }
+}
+
+/// Get a topological ordering of the graph (dependencies before dependents).
+pub fn topological_order(graph: &ResourceGraph) -> Result<Vec<NodeIndex>> {
+    petgraph::algo::toposort(graph, None)
+        .map_err(|cycle| anyhow::anyhow!("Cycle detected involving {:?}", graph[cycle.node_id()].address()))
+}
+
+/// Get the reverse topological ordering (for destroy operations).
+pub fn reverse_topological_order(graph: &ResourceGraph) -> Result<Vec<NodeIndex>> {
+    let mut order = topological_order(graph)?;
+    order.reverse();
+    Ok(order)
+}
+
+/// Generate DOT representation of the resource graph.
+pub fn to_dot(graph: &ResourceGraph) -> String {
+    let mut dot = String::from("digraph resources {\n");
+    dot.push_str("  rankdir=TB;\n");
+    dot.push_str("  node [shape=box, style=filled];\n\n");
+
+    for idx in graph.node_indices() {
+        let node = &graph[idx];
+        let (label, color) = match node {
+            DagNode::Resource { address, resource_type, .. } => {
+                (format!("{}\\n{}", address, resource_type), "#a8d8a8")
+            }
+            DagNode::DataSource { address, resource_type, .. } => {
+                (format!("data.{}\\n{}", address, resource_type), "#a8c8d8")
+            }
+            DagNode::Output { name, .. } => {
+                (format!("output.{}", name), "#d8d8a8")
+            }
+        };
+        dot.push_str(&format!(
+            "  n{} [label=\"{}\", fillcolor=\"{}\"];\n",
+            idx.index(), label, color
+        ));
+    }
+
+    dot.push('\n');
+
+    for edge in graph.edge_indices() {
+        if let Some((from, to)) = graph.edge_endpoints(edge) {
+            let style = match &graph[edge] {
+                DependencyEdge::Explicit => "solid",
+                DependencyEdge::Implicit => "dashed",
+                DependencyEdge::DataDependency => "dotted",
+                DependencyEdge::ProviderDep => "bold",
+            };
+            dot.push_str(&format!(
+                "  n{} -> n{} [style={}];\n",
+                from.index(), to.index(), style
+            ));
+        }
+    }
+
+    dot.push_str("}\n");
+    dot
+}

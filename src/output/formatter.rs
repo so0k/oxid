@@ -1,0 +1,417 @@
+use colored::Colorize;
+
+use crate::executor::engine::{PlanSummary, PlannedChange, ResourceAction};
+use crate::state::models::ResourceState;
+
+/// Print a success message.
+pub fn print_success(msg: &str) {
+    println!("{} {}", "✓".green().bold(), msg.green());
+}
+
+/// Print an error message.
+pub fn print_error(msg: &str) {
+    println!("{} {}", "✗".red().bold(), msg.red());
+}
+
+/// Print a resource-level execution plan in a Terraform-like format.
+pub fn print_resource_plan(plan: &PlanSummary, targets: &[String]) {
+    println!();
+
+    if plan.changes.is_empty() {
+        println!("{}", "No changes. Infrastructure is up-to-date.".green());
+        return;
+    }
+
+    // Check if there are any actionable changes
+    let actionable: Vec<&PlannedChange> = plan
+        .changes
+        .iter()
+        .filter(|c| c.action != ResourceAction::NoOp)
+        .filter(|c| {
+            targets.is_empty() || targets.iter().any(|t| c.address.contains(t))
+        })
+        .collect();
+
+    if actionable.is_empty() {
+        println!("{}", "No changes. Infrastructure is up-to-date.".green());
+        return;
+    }
+
+    // Legend
+    println!(
+        "Oxid used the selected providers to generate the following execution plan."
+    );
+    println!("Resource actions are indicated with the following symbols:");
+
+    let has_creates = actionable.iter().any(|c| c.action == ResourceAction::Create);
+    let has_updates = actionable.iter().any(|c| c.action == ResourceAction::Update);
+    let has_deletes = actionable.iter().any(|c| c.action == ResourceAction::Delete);
+    let has_replaces = actionable.iter().any(|c| c.action == ResourceAction::Replace);
+    let has_reads = actionable.iter().any(|c| c.action == ResourceAction::Read);
+
+    if has_creates {
+        println!("  {} create", "+".green().bold());
+    }
+    if has_updates {
+        println!("  {} update in-place", "~".yellow().bold());
+    }
+    if has_replaces {
+        println!("  {} destroy and then create replacement", "-/+".magenta().bold());
+    }
+    if has_deletes {
+        println!("  {} destroy", "-".red().bold());
+    }
+    if has_reads {
+        println!(" {} read (data resources)", "<=".cyan().bold());
+    }
+
+    println!();
+    println!("Oxid will perform the following actions:");
+    println!();
+
+    // Print each resource
+    for change in &actionable {
+        print_resource_change(change);
+    }
+
+    // Print summary
+    println!("{}", plan);
+    println!();
+
+    // Print output changes
+    if !plan.outputs.is_empty() {
+        println!("Changes to Outputs:");
+        for output in &plan.outputs {
+            let line = format!("  + {} = (known after apply)", output.name);
+            println!("{}", line.green());
+        }
+        println!();
+    }
+}
+
+/// Print a single resource change with its attributes.
+fn print_resource_change(change: &PlannedChange) {
+    let (icon, color_fn): (&str, fn(&str) -> colored::ColoredString) = match change.action {
+        ResourceAction::Create => ("+", |s: &str| s.green()),
+        ResourceAction::Update => ("~", |s: &str| s.yellow()),
+        ResourceAction::Delete => ("-", |s: &str| s.red()),
+        ResourceAction::Replace => ("-/+", |s: &str| s.magenta()),
+        ResourceAction::Read => ("<=", |s: &str| s.cyan()),
+        ResourceAction::NoOp => return,
+    };
+
+    let action_desc = match change.action {
+        ResourceAction::Create => "will be created",
+        ResourceAction::Update => "will be updated in-place",
+        ResourceAction::Delete => "will be destroyed",
+        ResourceAction::Replace => "must be replaced",
+        ResourceAction::Read => "will be read during apply",
+        ResourceAction::NoOp => return,
+    };
+
+    // Header: # aws_vpc.main will be created
+    println!(
+        "  {} {} {}",
+        "#".dimmed(),
+        change.address.bold(),
+        action_desc.dimmed()
+    );
+
+    // Resource block: + resource "aws_vpc" "main" {
+    let is_data = change.address.starts_with("data.");
+    let (block_type, res_type, res_name) = if is_data {
+        // data.aws_ami.amazon_linux → data "aws_ami" "amazon_linux"
+        let stripped = change.address.strip_prefix("data.").unwrap_or(&change.address);
+        let parts: Vec<&str> = stripped.splitn(2, '.').collect();
+        if parts.len() == 2 {
+            ("data", parts[0], parts[1])
+        } else {
+            ("data", change.resource_type.as_str(), stripped)
+        }
+    } else {
+        let parts: Vec<&str> = change.address.splitn(2, '.').collect();
+        if parts.len() == 2 {
+            ("resource", parts[0], parts[1])
+        } else {
+            ("resource", change.resource_type.as_str(), change.address.as_str())
+        }
+    };
+    let header = format!(
+        "  {} {} \"{}\" \"{}\" {{",
+        icon, block_type, res_type, res_name
+    );
+    println!("{}", color_fn(&header));
+
+    // Collect user-specified keys for identification
+    let user_keys: std::collections::HashSet<String> = change
+        .user_config
+        .as_ref()
+        .and_then(|v| v.as_object())
+        .map(|obj| obj.keys().filter(|k| {
+            let v = &obj[k.as_str()];
+            !v.is_null()
+        }).cloned().collect())
+        .unwrap_or_default();
+
+    // Print attributes from planned state
+    if let Some(ref planned) = change.planned_state {
+        if let Some(obj) = planned.as_object() {
+            let prior_obj = change
+                .prior_state
+                .as_ref()
+                .and_then(|v| v.as_object());
+
+            // Sort keys: user-specified first, then alphabetical
+            let mut keys: Vec<&String> = obj.keys().collect();
+            keys.sort_by(|a, b| {
+                let a_user = user_keys.contains(a.as_str());
+                let b_user = user_keys.contains(b.as_str());
+                match (a_user, b_user) {
+                    (true, false) => std::cmp::Ordering::Less,
+                    (false, true) => std::cmp::Ordering::Greater,
+                    _ => a.cmp(b),
+                }
+            });
+
+            // Find max key length for alignment
+            let max_key_len = keys.iter().map(|k| k.len()).max().unwrap_or(0).min(35);
+
+            for key in &keys {
+                let value = &obj[key.as_str()];
+
+                // Skip null values that aren't user-specified (reduce noise)
+                if value.is_null() && !user_keys.contains(key.as_str()) {
+                    continue;
+                }
+
+                // Skip very large nested objects/arrays unless user-specified
+                if !user_keys.contains(key.as_str()) {
+                    match value {
+                        serde_json::Value::Object(m) if m.len() > 8 => continue,
+                        serde_json::Value::Array(a) if a.len() > 10 => continue,
+                        _ => {}
+                    }
+                }
+
+                let is_user_set = user_keys.contains(key.as_str());
+                let prior_value = prior_obj.and_then(|p| p.get(key.as_str()));
+
+                let display_val = format_plan_value(value, is_user_set, prior_value);
+
+                // Show change marker for updates
+                let attr_icon = match change.action {
+                    ResourceAction::Update => {
+                        if prior_value.map(|p| p != value).unwrap_or(true) && is_user_set {
+                            "~"
+                        } else {
+                            " "
+                        }
+                    }
+                    ResourceAction::Replace => {
+                        if change.requires_replace.contains(&key.to_string()) {
+                            "#" // forces replacement
+                        } else {
+                            " "
+                        }
+                    }
+                    _ => "+",
+                };
+
+                let line = format!(
+                    "      {} {:<width$} = {}",
+                    attr_icon,
+                    key,
+                    display_val,
+                    width = max_key_len
+                );
+                println!("{}", color_fn(&line));
+            }
+        }
+    } else if change.action == ResourceAction::Create || change.action == ResourceAction::Replace {
+        // No planned state yet — show user config
+        if let Some(ref config) = change.user_config {
+            if let Some(obj) = config.as_object() {
+                let max_key_len = obj.keys().map(|k| k.len()).max().unwrap_or(0).min(35);
+                for (key, value) in obj {
+                    if value.is_null() {
+                        continue;
+                    }
+                    let display_val = format_value_short(value);
+                    let line = format!(
+                        "      + {:<width$} = {}",
+                        key,
+                        display_val,
+                        width = max_key_len
+                    );
+                    println!("{}", color_fn(&line));
+                }
+            }
+        }
+    }
+
+    let closing = format!("  {} }}", if change.action == ResourceAction::Delete { "-" } else { " " });
+    println!("{}", color_fn(&closing));
+    println!();
+}
+
+/// Format a value for the plan display.
+fn format_plan_value(
+    value: &serde_json::Value,
+    is_user_set: bool,
+    prior_value: Option<&serde_json::Value>,
+) -> String {
+    if is_user_set {
+        format_value_short(value)
+    } else if value.is_null() {
+        "(known after apply)".dimmed().to_string()
+    } else if prior_value.is_none() {
+        // New attribute with a provider-computed value
+        format_value_short(value)
+    } else {
+        format_value_short(value)
+    }
+}
+
+/// Format a JSON value for short inline display.
+fn format_value_short(value: &serde_json::Value) -> String {
+    match value {
+        serde_json::Value::String(s) => format!("\"{}\"", s),
+        serde_json::Value::Null => "(known after apply)".dimmed().to_string(),
+        serde_json::Value::Bool(b) => b.to_string(),
+        serde_json::Value::Number(n) => n.to_string(),
+        serde_json::Value::Array(arr) => {
+            if arr.is_empty() {
+                "[]".to_string()
+            } else if arr.len() <= 4
+                && arr.iter().all(|v| matches!(v, serde_json::Value::String(_)))
+            {
+                let items: Vec<String> = arr.iter().map(format_value_short).collect();
+                format!("[{}]", items.join(", "))
+            } else {
+                format!("[...{} items]", arr.len())
+            }
+        }
+        serde_json::Value::Object(obj) => {
+            if obj.is_empty() {
+                "{}".to_string()
+            } else if obj.len() <= 4 {
+                let items: Vec<String> = obj
+                    .iter()
+                    .map(|(k, v)| format!("{} = {}", k, format_value_short(v)))
+                    .collect();
+                format!("{{ {} }}", items.join(", "))
+            } else {
+                format!("{{...{} keys}}", obj.len())
+            }
+        }
+    }
+}
+
+/// Print a list of resources from state.
+pub fn print_resource_list(resources: &[ResourceState]) {
+    if resources.is_empty() {
+        println!("{}", "No resources in state.".dimmed());
+        return;
+    }
+
+    println!();
+    println!("{}", "Resources".bold().cyan());
+    println!("{}", "─".repeat(80));
+    println!(
+        "  {:<35} {:<20} {:<12} {}",
+        "ADDRESS".bold(),
+        "TYPE".bold(),
+        "STATUS".bold(),
+        "PROVIDER".bold()
+    );
+    println!("{}", "─".repeat(80));
+
+    for resource in resources {
+        let status_colored = match resource.status.as_str() {
+            "created" => resource.status.green().to_string(),
+            "failed" => resource.status.red().to_string(),
+            "tainted" => resource.status.yellow().to_string(),
+            "deleted" => resource.status.dimmed().to_string(),
+            "planned" => resource.status.blue().to_string(),
+            _ => resource.status.clone(),
+        };
+
+        let provider_short = resource
+            .provider_source
+            .split('/')
+            .last()
+            .unwrap_or(&resource.provider_source);
+
+        println!(
+            "  {:<35} {:<20} {:<12} {}",
+            resource.address,
+            resource.resource_type,
+            status_colored,
+            provider_short.dimmed()
+        );
+    }
+
+    println!();
+    println!("  {} resource(s) total.", resources.len());
+    println!();
+}
+
+/// Print detailed resource state.
+pub fn print_resource_detail(resource: &ResourceState) {
+    println!();
+    println!(
+        "{} {}",
+        "Resource:".bold().cyan(),
+        resource.address.bold()
+    );
+    println!("{}", "─".repeat(60));
+    println!("  {:<18} {}", "Type:".bold(), resource.resource_type);
+    println!("  {:<18} {}", "Name:".bold(), resource.resource_name);
+    println!("  {:<18} {}", "Provider:".bold(), resource.provider_source);
+    println!("  {:<18} {}", "Mode:".bold(), resource.resource_mode);
+
+    let status_colored = match resource.status.as_str() {
+        "created" => resource.status.green().to_string(),
+        "failed" => resource.status.red().to_string(),
+        "tainted" => resource.status.yellow().to_string(),
+        _ => resource.status.clone(),
+    };
+    println!("  {:<18} {}", "Status:".bold(), status_colored);
+
+    if !resource.module_path.is_empty() {
+        println!("  {:<18} {}", "Module:".bold(), resource.module_path);
+    }
+
+    if let Some(ref idx) = resource.index_key {
+        println!("  {:<18} {}", "Index:".bold(), idx);
+    }
+
+    println!("  {:<18} {}", "Schema Version:".bold(), resource.schema_version);
+    println!("  {:<18} {}", "Created:".bold(), resource.created_at);
+    println!("  {:<18} {}", "Updated:".bold(), resource.updated_at);
+
+    // Print attributes
+    if resource.attributes_json != "{}" && !resource.attributes_json.is_empty() {
+        println!();
+        println!("  {}:", "Attributes".bold());
+
+        if let Ok(attrs) = serde_json::from_str::<serde_json::Value>(&resource.attributes_json) {
+            if let Some(obj) = attrs.as_object() {
+                let sensitive: std::collections::HashSet<&str> =
+                    resource.sensitive_attrs.iter().map(|s| s.as_str()).collect();
+
+                for (key, value) in obj {
+                    let display_value = if sensitive.contains(key.as_str()) {
+                        "(sensitive)".dimmed().to_string()
+                    } else {
+                        format_value_short(value)
+                    };
+                    println!("    {:<20} = {}", key, display_value);
+                }
+            }
+        }
+    }
+
+    println!("{}", "─".repeat(60));
+    println!();
+}
