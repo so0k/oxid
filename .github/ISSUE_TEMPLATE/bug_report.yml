@@ -1,0 +1,64 @@
+name: Bug Report
+description: Report a bug in oxid
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please fill out the details below.
+
+  - type: input
+    id: version
+    attributes:
+      label: Oxid Version
+      description: Output of `oxid --version`
+      placeholder: "oxid 0.1.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened? What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal steps to reproduce the issue
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Config (if relevant)
+      description: The .tf or .yaml config that triggers the issue
+      render: hcl
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Output
+      description: Paste the relevant error output
+      render: shell
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux (x86_64)
+        - Linux (ARM64)
+        - Other
+    validations:
+      required: true

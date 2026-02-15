@@ -177,4 +177,4 @@ AGPL-3.0. See [LICENSE](LICENSE) for details.
 
 ---
 
-Built by [ops0.ai](https://ops0.ai)
+Built by [ops0.com](https://ops0.com)

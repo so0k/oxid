@@ -1,7 +1,11 @@
 [package]
 name = "oxid"
-version = "0.2.0"
+version = "0.1.0"
 edition = "2021"
+description = "Standalone infrastructure-as-code engine — OSS alternative to Terraform/OpenTofu"
+license = "AGPL-3.0"
+repository = "https://github.com/ops0-ai/oxid"
+homepage = "https://github.com/ops0-ai/oxid"
 
 [dependencies]
 # CLI framework
