@@ -213,7 +213,10 @@ pub async fn terraform_plan(settings: &YamlSettings, module_dir: &Path) -> Resul
 }
 
 /// Run terraform apply for a module.
-pub async fn terraform_apply(settings: &YamlSettings, module_dir: &Path) -> Result<TerraformResult> {
+pub async fn terraform_apply(
+    settings: &YamlSettings,
+    module_dir: &Path,
+) -> Result<TerraformResult> {
     run_terraform(
         settings,
         module_dir,
@@ -223,7 +226,10 @@ pub async fn terraform_apply(settings: &YamlSettings, module_dir: &Path) -> Resu
 }
 
 /// Run terraform destroy for a module.
-pub async fn terraform_destroy(settings: &YamlSettings, module_dir: &Path) -> Result<TerraformResult> {
+pub async fn terraform_destroy(
+    settings: &YamlSettings,
+    module_dir: &Path,
+) -> Result<TerraformResult> {
     run_terraform(
         settings,
         module_dir,

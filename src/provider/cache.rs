@@ -132,9 +132,7 @@ impl ProviderCache {
                     let version = ver_entry.file_name().to_string_lossy().to_string();
 
                     if let Some(binary) = find_binary_in_dir(&ver_entry.path()) {
-                        let size = std::fs::metadata(&binary)
-                            .map(|m| m.len())
-                            .unwrap_or(0);
+                        let size = std::fs::metadata(&binary).map(|m| m.len()).unwrap_or(0);
 
                         result.push(CachedProvider {
                             namespace: namespace.clone(),
@@ -152,16 +150,14 @@ impl ProviderCache {
     }
 
     /// Remove a specific cached provider version.
-    pub fn remove(
-        &self,
-        namespace: &str,
-        provider_type: &str,
-        version: &str,
-    ) -> Result<()> {
+    pub fn remove(&self, namespace: &str, provider_type: &str, version: &str) -> Result<()> {
         let version_dir = self.version_dir(namespace, provider_type, version);
         if version_dir.exists() {
             std::fs::remove_dir_all(&version_dir)?;
-            debug!("Removed cached provider {}/{} v{}", namespace, provider_type, version);
+            debug!(
+                "Removed cached provider {}/{} v{}",
+                namespace, provider_type, version
+            );
         }
         Ok(())
     }

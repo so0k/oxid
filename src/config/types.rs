@@ -45,8 +45,13 @@ impl Default for Settings {
 /// State backend selection.
 #[derive(Debug, Clone)]
 pub enum StateBackendConfig {
-    Sqlite { path: String },
-    Postgres { connection_string: String, schema: String },
+    Sqlite {
+        path: String,
+    },
+    Postgres {
+        connection_string: String,
+        schema: String,
+    },
 }
 
 // ─── Workspace (the collection of all infrastructure in scope) ──────────────
@@ -183,10 +188,7 @@ pub enum Expression {
     Reference(Vec<String>),
 
     /// A function call like join(",", var.list).
-    FunctionCall {
-        name: String,
-        args: Vec<Expression>,
-    },
+    FunctionCall { name: String, args: Vec<Expression> },
 
     /// Ternary: condition ? true_val : false_val.
     Conditional {

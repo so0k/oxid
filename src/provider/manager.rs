@@ -42,60 +42,68 @@ impl ProviderManager {
 
     /// Ensure a provider is available (downloaded + cached).
     /// Returns the path to the provider binary.
-    pub async fn ensure_provider(
-        &self,
-        source: &str,
-        version_constraint: &str,
-    ) -> Result<PathBuf> {
+    pub async fn ensure_provider(&self, source: &str, version_constraint: &str) -> Result<PathBuf> {
         let (namespace, provider_type) = RegistryClient::parse_source(source)?;
         let key = format!("{}/{}", namespace, provider_type);
 
         // Check cache first
-        if let Some(cached) = self.cache.find(&namespace, &provider_type, version_constraint)? {
+        if let Some(cached) = self
+            .cache
+            .find(&namespace, &provider_type, version_constraint)?
+        {
             debug!("Provider {} found in cache: {}", key, cached.display());
             return Ok(cached);
         }
 
         // Resolve version from registry
-        info!("Resolving provider {}/{} version {}", namespace, provider_type, version_constraint);
+        info!(
+            "Resolving provider {}/{} version {}",
+            namespace, provider_type, version_constraint
+        );
         let version = self
             .registry
             .resolve_version(&namespace, &provider_type, version_constraint)
             .await?;
 
         // Check cache with resolved version
-        if let Some(cached) = self.cache.find_exact(&namespace, &provider_type, &version)? {
+        if let Some(cached) = self
+            .cache
+            .find_exact(&namespace, &provider_type, &version)?
+        {
             debug!("Provider {}@{} found in cache", key, version);
             return Ok(cached);
         }
 
         // Download from registry
-        info!("Downloading provider {}/{}@{}", namespace, provider_type, version);
+        info!(
+            "Downloading provider {}/{}@{}",
+            namespace, provider_type, version
+        );
         let download_info = self
             .registry
             .get_download_info(&namespace, &provider_type, &version)
             .await?;
 
-        let dest_dir = self
-            .cache
-            .version_dir(&namespace, &provider_type, &version);
+        let dest_dir = self.cache.version_dir(&namespace, &provider_type, &version);
 
         let binary_path = self
             .registry
             .download_provider(&download_info, &dest_dir)
             .await?;
 
-        info!("Provider {}/{}@{} downloaded to {}", namespace, provider_type, version, binary_path.display());
+        info!(
+            "Provider {}/{}@{} downloaded to {}",
+            namespace,
+            provider_type,
+            version,
+            binary_path.display()
+        );
 
         Ok(binary_path)
     }
 
     /// Get or start a provider connection. Reuses existing connections.
-    pub async fn get_connection(
-        &self,
-        source: &str,
-        version_constraint: &str,
-    ) -> Result<()> {
+    pub async fn get_connection(&self, source: &str, version_constraint: &str) -> Result<()> {
         let (namespace, provider_type) = RegistryClient::parse_source(source)?;
         let key = format!("{}/{}", namespace, provider_type);
 
@@ -169,9 +177,10 @@ impl ProviderManager {
         let key = format!("{}/{}", namespace, provider_type);
 
         let conns = self.connections.read().await;
-        let conn = conns
-            .get(&key)
-            .context(format!("Provider {} not connected. Call get_connection first.", key))?;
+        let conn = conns.get(&key).context(format!(
+            "Provider {} not connected. Call get_connection first.",
+            key
+        ))?;
 
         conn.plan_resource_change(type_name, prior_state, proposed_new_state, config)
             .await
@@ -196,8 +205,14 @@ impl ProviderManager {
             .get(&key)
             .context(format!("Provider {} not connected", key))?;
 
-        conn.apply_resource_change(type_name, prior_state, planned_state, config, planned_private)
-            .await
+        conn.apply_resource_change(
+            type_name,
+            prior_state,
+            planned_state,
+            config,
+            planned_private,
+        )
+        .await
     }
 
     /// Read a resource's current state from the provider.
@@ -271,11 +286,7 @@ impl ProviderManager {
     }
 
     /// Configure a running provider. Needs write lock (mutates connection state).
-    pub async fn configure_provider(
-        &self,
-        source: &str,
-        config: &serde_json::Value,
-    ) -> Result<()> {
+    pub async fn configure_provider(&self, source: &str, config: &serde_json::Value) -> Result<()> {
         let (namespace, provider_type) = RegistryClient::parse_source(source)?;
         let key = format!("{}/{}", namespace, provider_type);
 
@@ -324,4 +335,3 @@ impl Drop for ProviderManager {
         // due to `kill_on_drop(true)` in ProviderConnection.
     }
 }
-

@@ -64,10 +64,7 @@ fn yaml_value_to_expression(value: &serde_yaml::Value) -> Expression {
             }
         }
         serde_yaml::Value::Sequence(seq) => {
-            let items: Vec<Value> = seq
-                .iter()
-                .map(|v| yaml_value_to_value(v))
-                .collect();
+            let items: Vec<Value> = seq.iter().map(|v| yaml_value_to_value(v)).collect();
             Expression::Literal(Value::List(items))
         }
         serde_yaml::Value::Mapping(map) => {
@@ -129,8 +126,7 @@ fn parse_yaml_template(s: &str) -> Expression {
 
         if let Some(end) = remaining[start + 2..].find('}') {
             let ref_str = &remaining[start + 2..start + 2 + end];
-            let ref_parts: Vec<String> =
-                ref_str.split('.').map(|s| s.trim().to_string()).collect();
+            let ref_parts: Vec<String> = ref_str.split('.').map(|s| s.trim().to_string()).collect();
             parts.push(TemplatePart::Interpolation(Box::new(
                 Expression::Reference(ref_parts),
             )));

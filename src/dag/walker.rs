@@ -45,7 +45,10 @@ enum WalkerMessage {
 
 /// Callback signature for node execution.
 pub type NodeExecutor = Box<
-    dyn Fn(NodeIndex, DagNode) -> futures::future::BoxFuture<'static, Result<Option<serde_json::Value>>>
+    dyn Fn(
+            NodeIndex,
+            DagNode,
+        ) -> futures::future::BoxFuture<'static, Result<Option<serde_json::Value>>>
         + Send
         + Sync,
 >;
@@ -80,7 +83,8 @@ impl DagWalker {
         }
 
         // Count only resource/data nodes for progress display (skip outputs)
-        let resource_count = graph.node_indices()
+        let resource_count = graph
+            .node_indices()
             .filter(|&idx| !matches!(graph[idx], DagNode::Output { .. }))
             .count();
 
@@ -159,8 +163,16 @@ impl DagWalker {
         // Spawn initial ready nodes
         for &idx in &ready {
             spawn_node(
-                idx, graph, &executor, &semaphore, &statuses, &tx,
-                mode, &start_times, &running_info, &wall_clock,
+                idx,
+                graph,
+                &executor,
+                &semaphore,
+                &statuses,
+                &tx,
+                mode,
+                &start_times,
+                &running_info,
+                &wall_clock,
             );
         }
 
@@ -190,7 +202,8 @@ impl DagWalker {
                     }
 
                     // Extract resource ID from outputs if available
-                    let resource_id = result.outputs
+                    let resource_id = result
+                        .outputs
                         .as_ref()
                         .and_then(|o| o.get("id"))
                         .and_then(|v| v.as_str())
@@ -256,8 +269,15 @@ impl DagWalker {
 
                                 if all_deps_met {
                                     spawn_node(
-                                        dependent_idx, graph, &executor, &semaphore,
-                                        &statuses, &tx, mode, &start_times, &running_info,
+                                        dependent_idx,
+                                        graph,
+                                        &executor,
+                                        &semaphore,
+                                        &statuses,
+                                        &tx,
+                                        mode,
+                                        &start_times,
+                                        &running_info,
                                         &wall_clock,
                                     );
                                 }
@@ -268,10 +288,7 @@ impl DagWalker {
                         for &skip_idx in &skipped {
                             let skip_address = graph[skip_idx].address().to_string();
                             let skip_is_output = matches!(graph[skip_idx], DagNode::Output { .. });
-                            let reason = format!(
-                                "Dependency '{}' failed",
-                                result.address
-                            );
+                            let reason = format!("Dependency '{}' failed", result.address);
 
                             if !skip_is_output {
                                 resource_completed += 1;
@@ -344,11 +361,14 @@ fn spawn_node(
 
         println!("{}: {}...", address, verb_progress.cyan());
 
-        running_info.insert(idx, RunningNode {
-            address: address.clone(),
-            verb_progress,
-            verb_past,
-        });
+        running_info.insert(
+            idx,
+            RunningNode {
+                address: address.clone(),
+                verb_progress,
+                verb_past,
+            },
+        );
     }
 
     tokio::spawn(async move {
@@ -363,14 +383,12 @@ fn spawn_node(
                 status: NodeStatus::Succeeded,
                 outputs,
             },
-            Err(e) => {
-                NodeResult {
-                    node_index: idx,
-                    address,
-                    status: NodeStatus::Failed(e.to_string()),
-                    outputs: None,
-                }
-            }
+            Err(e) => NodeResult {
+                node_index: idx,
+                address,
+                status: NodeStatus::Failed(e.to_string()),
+                outputs: None,
+            },
         };
 
         let _ = tx.send(WalkerMessage::NodeCompleted(node_result)).await;

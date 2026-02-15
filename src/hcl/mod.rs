@@ -83,10 +83,10 @@ fn load_tfvars(dir: &Path) -> Result<HashMap<String, Expression>> {
 /// Parse a single .tfvars file into a map of variable name → Expression.
 /// .tfvars files are HCL-formatted key-value assignments.
 fn parse_tfvars_file(path: &Path) -> Result<HashMap<String, Expression>> {
-    let content = std::fs::read_to_string(path)
-        .context(format!("Failed to read {}", path.display()))?;
-    let body: hcl::Body = hcl::from_str(&content)
-        .context(format!("Failed to parse {}", path.display()))?;
+    let content =
+        std::fs::read_to_string(path).context(format!("Failed to read {}", path.display()))?;
+    let body: hcl::Body =
+        hcl::from_str(&content).context(format!("Failed to parse {}", path.display()))?;
 
     let mut values = HashMap::new();
     for attr in body.attributes() {

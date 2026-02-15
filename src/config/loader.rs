@@ -40,9 +40,7 @@ pub fn load_workspace(path: &Path) -> Result<WorkspaceConfig> {
         }
         ConfigMode::Yaml => {
             tracing::info!("Detected YAML mode (.yaml files)");
-            let yaml_config = crate::config::parser::load_config(
-                &path.to_string_lossy(),
-            )?;
+            let yaml_config = crate::config::parser::load_config(&path.to_string_lossy())?;
             crate::config::yaml_converter::yaml_to_workspace(&yaml_config)
         }
         ConfigMode::Both => {
@@ -50,11 +48,8 @@ pub fn load_workspace(path: &Path) -> Result<WorkspaceConfig> {
             // Parse HCL first (resources, providers), then overlay YAML (orchestration)
             let mut workspace = crate::hcl::parse_directory(path)?;
 
-            let yaml_config = crate::config::parser::load_config(
-                &path.to_string_lossy(),
-            )?;
-            let yaml_workspace =
-                crate::config::yaml_converter::yaml_to_workspace(&yaml_config)?;
+            let yaml_config = crate::config::parser::load_config(&path.to_string_lossy())?;
+            let yaml_workspace = crate::config::yaml_converter::yaml_to_workspace(&yaml_config)?;
 
             // Merge YAML modules and variables into the HCL workspace
             workspace.modules.extend(yaml_workspace.modules);

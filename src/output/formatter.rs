@@ -27,9 +27,7 @@ pub fn print_resource_plan(plan: &PlanSummary, targets: &[String]) {
         .changes
         .iter()
         .filter(|c| c.action != ResourceAction::NoOp)
-        .filter(|c| {
-            targets.is_empty() || targets.iter().any(|t| c.address.contains(t))
-        })
+        .filter(|c| targets.is_empty() || targets.iter().any(|t| c.address.contains(t)))
         .collect();
 
     if actionable.is_empty() {
@@ -38,15 +36,21 @@ pub fn print_resource_plan(plan: &PlanSummary, targets: &[String]) {
     }
 
     // Legend
-    println!(
-        "Oxid used the selected providers to generate the following execution plan."
-    );
+    println!("Oxid used the selected providers to generate the following execution plan.");
     println!("Resource actions are indicated with the following symbols:");
 
-    let has_creates = actionable.iter().any(|c| c.action == ResourceAction::Create);
-    let has_updates = actionable.iter().any(|c| c.action == ResourceAction::Update);
-    let has_deletes = actionable.iter().any(|c| c.action == ResourceAction::Delete);
-    let has_replaces = actionable.iter().any(|c| c.action == ResourceAction::Replace);
+    let has_creates = actionable
+        .iter()
+        .any(|c| c.action == ResourceAction::Create);
+    let has_updates = actionable
+        .iter()
+        .any(|c| c.action == ResourceAction::Update);
+    let has_deletes = actionable
+        .iter()
+        .any(|c| c.action == ResourceAction::Delete);
+    let has_replaces = actionable
+        .iter()
+        .any(|c| c.action == ResourceAction::Replace);
     let has_reads = actionable.iter().any(|c| c.action == ResourceAction::Read);
 
     if has_creates {
@@ -56,7 +60,10 @@ pub fn print_resource_plan(plan: &PlanSummary, targets: &[String]) {
         println!("  {} update in-place", "~".yellow().bold());
     }
     if has_replaces {
-        println!("  {} destroy and then create replacement", "-/+".magenta().bold());
+        println!(
+            "  {} destroy and then create replacement",
+            "-/+".magenta().bold()
+        );
     }
     if has_deletes {
         println!("  {} destroy", "-".red().bold());
@@ -121,7 +128,10 @@ fn print_resource_change(change: &PlannedChange) {
     let is_data = change.address.starts_with("data.");
     let (block_type, res_type, res_name) = if is_data {
         // data.aws_ami.amazon_linux → data "aws_ami" "amazon_linux"
-        let stripped = change.address.strip_prefix("data.").unwrap_or(&change.address);
+        let stripped = change
+            .address
+            .strip_prefix("data.")
+            .unwrap_or(&change.address);
         let parts: Vec<&str> = stripped.splitn(2, '.').collect();
         if parts.len() == 2 {
             ("data", parts[0], parts[1])
@@ -133,7 +143,11 @@ fn print_resource_change(change: &PlannedChange) {
         if parts.len() == 2 {
             ("resource", parts[0], parts[1])
         } else {
-            ("resource", change.resource_type.as_str(), change.address.as_str())
+            (
+                "resource",
+                change.resource_type.as_str(),
+                change.address.as_str(),
+            )
         }
     };
     let header = format!(
@@ -147,19 +161,21 @@ fn print_resource_change(change: &PlannedChange) {
         .user_config
         .as_ref()
         .and_then(|v| v.as_object())
-        .map(|obj| obj.keys().filter(|k| {
-            let v = &obj[k.as_str()];
-            !v.is_null()
-        }).cloned().collect())
+        .map(|obj| {
+            obj.keys()
+                .filter(|k| {
+                    let v = &obj[k.as_str()];
+                    !v.is_null()
+                })
+                .cloned()
+                .collect()
+        })
         .unwrap_or_default();
 
     // Print attributes from planned state
     if let Some(ref planned) = change.planned_state {
         if let Some(obj) = planned.as_object() {
-            let prior_obj = change
-                .prior_state
-                .as_ref()
-                .and_then(|v| v.as_object());
+            let prior_obj = change.prior_state.as_ref().and_then(|v| v.as_object());
 
             // Sort keys: user-specified first, then alphabetical
             let mut keys: Vec<&String> = obj.keys().collect();
@@ -249,7 +265,14 @@ fn print_resource_change(change: &PlannedChange) {
         }
     }
 
-    let closing = format!("  {} }}", if change.action == ResourceAction::Delete { "-" } else { " " });
+    let closing = format!(
+        "  {} }}",
+        if change.action == ResourceAction::Delete {
+            "-"
+        } else {
+            " "
+        }
+    );
     println!("{}", color_fn(&closing));
     println!();
 }
@@ -283,7 +306,9 @@ fn format_value_short(value: &serde_json::Value) -> String {
             if arr.is_empty() {
                 "[]".to_string()
             } else if arr.len() <= 4
-                && arr.iter().all(|v| matches!(v, serde_json::Value::String(_)))
+                && arr
+                    .iter()
+                    .all(|v| matches!(v, serde_json::Value::String(_)))
             {
                 let items: Vec<String> = arr.iter().map(format_value_short).collect();
                 format!("[{}]", items.join(", "))
@@ -359,11 +384,7 @@ pub fn print_resource_list(resources: &[ResourceState]) {
 /// Print detailed resource state.
 pub fn print_resource_detail(resource: &ResourceState) {
     println!();
-    println!(
-        "{} {}",
-        "Resource:".bold().cyan(),
-        resource.address.bold()
-    );
+    println!("{} {}", "Resource:".bold().cyan(), resource.address.bold());
     println!("{}", "─".repeat(60));
     println!("  {:<18} {}", "Type:".bold(), resource.resource_type);
     println!("  {:<18} {}", "Name:".bold(), resource.resource_name);
@@ -386,7 +407,11 @@ pub fn print_resource_detail(resource: &ResourceState) {
         println!("  {:<18} {}", "Index:".bold(), idx);
     }
 
-    println!("  {:<18} {}", "Schema Version:".bold(), resource.schema_version);
+    println!(
+        "  {:<18} {}",
+        "Schema Version:".bold(),
+        resource.schema_version
+    );
     println!("  {:<18} {}", "Created:".bold(), resource.created_at);
     println!("  {:<18} {}", "Updated:".bold(), resource.updated_at);
 
@@ -397,8 +422,11 @@ pub fn print_resource_detail(resource: &ResourceState) {
 
         if let Ok(attrs) = serde_json::from_str::<serde_json::Value>(&resource.attributes_json) {
             if let Some(obj) = attrs.as_object() {
-                let sensitive: std::collections::HashSet<&str> =
-                    resource.sensitive_attrs.iter().map(|s| s.as_str()).collect();
+                let sensitive: std::collections::HashSet<&str> = resource
+                    .sensitive_attrs
+                    .iter()
+                    .map(|s| s.as_str())
+                    .collect();
 
                 for (key, value) in obj {
                     let display_value = if sensitive.contains(key.as_str()) {

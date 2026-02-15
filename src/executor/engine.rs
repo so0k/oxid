@@ -177,8 +177,7 @@ impl ResourceEngine {
         workspace_id: &str,
     ) -> Result<PlanSummary> {
         let provider_map = build_provider_map(workspace);
-        let (graph, _node_map) =
-            resource_graph::build_resource_dag(workspace, &provider_map)?;
+        let (graph, _node_map) = resource_graph::build_resource_dag(workspace, &provider_map)?;
 
         // Ensure all providers are started and configured
         self.initialize_providers(workspace).await?;
@@ -191,7 +190,8 @@ impl ResourceEngine {
         let mut outputs = Vec::new();
 
         // Count resources for progress
-        let total_resources = graph.node_indices()
+        let total_resources = graph
+            .node_indices()
             .filter(|&idx| !matches!(graph[idx], DagNode::Output { .. }))
             .count();
         let mut planned_count = 0;
@@ -288,8 +288,9 @@ impl ResourceEngine {
                     let user_config = attributes_to_json(&config.attributes, &eval_ctx);
 
                     // Build full config with all schema attributes
-                    let config_json = if let Ok(Some(schema)) =
-                        pm.get_data_source_schema(provider_source, resource_type).await
+                    let config_json = if let Ok(Some(schema)) = pm
+                        .get_data_source_schema(provider_source, resource_type)
+                        .await
                     {
                         build_full_resource_config(&user_config, &schema)
                     } else {
@@ -318,12 +319,7 @@ impl ResourceEngine {
                             state
                         }
                         Err(e) => {
-                            println!(
-                                "{}: {} — {}",
-                                address,
-                                "Read FAILED".red().bold(),
-                                e,
-                            );
+                            println!("{}: {} — {}", address, "Read FAILED".red().bold(), e,);
                             continue;
                         }
                     };
@@ -350,11 +346,26 @@ impl ResourceEngine {
             }
         }
 
-        let creates = changes.iter().filter(|c| c.action == ResourceAction::Create).count();
-        let updates = changes.iter().filter(|c| c.action == ResourceAction::Update).count();
-        let deletes = changes.iter().filter(|c| c.action == ResourceAction::Delete).count();
-        let replaces = changes.iter().filter(|c| c.action == ResourceAction::Replace).count();
-        let no_ops = changes.iter().filter(|c| c.action == ResourceAction::NoOp).count();
+        let creates = changes
+            .iter()
+            .filter(|c| c.action == ResourceAction::Create)
+            .count();
+        let updates = changes
+            .iter()
+            .filter(|c| c.action == ResourceAction::Update)
+            .count();
+        let deletes = changes
+            .iter()
+            .filter(|c| c.action == ResourceAction::Delete)
+            .count();
+        let replaces = changes
+            .iter()
+            .filter(|c| c.action == ResourceAction::Replace)
+            .count();
+        let no_ops = changes
+            .iter()
+            .filter(|c| c.action == ResourceAction::NoOp)
+            .count();
 
         Ok(PlanSummary {
             changes,
@@ -376,8 +387,7 @@ impl ResourceEngine {
         plan: &PlanSummary,
     ) -> Result<ApplySummary> {
         let provider_map = build_provider_map(workspace);
-        let (graph, _node_map) =
-            resource_graph::build_resource_dag(workspace, &provider_map)?;
+        let (graph, _node_map) = resource_graph::build_resource_dag(workspace, &provider_map)?;
 
         let pm = Arc::clone(&self.provider_manager);
         let ws_id = workspace_id.to_string();
@@ -402,7 +412,8 @@ impl ResourceEngine {
             let ws_id = ws_id.clone();
             let backend = Arc::clone(&backend_clone);
             let resource_states = Arc::clone(&resource_states);
-            let eval_ctx = EvalContext::with_states(var_defaults.clone(), Arc::clone(&resource_states));
+            let eval_ctx =
+                EvalContext::with_states(var_defaults.clone(), Arc::clone(&resource_states));
 
             Box::pin(async move {
                 match node {
@@ -444,78 +455,77 @@ impl ResourceEngine {
 
                         // If requires_replace is non-empty AND there's a prior state,
                         // we need to destroy the old resource first, then create new.
-                        let apply_result = if !plan_result.requires_replace.is_empty()
-                            && prior_state.is_some()
-                        {
-                            info!(
-                                address = %address,
-                                replace_fields = ?plan_result.requires_replace,
-                                "Resource requires replacement — destroying old, creating new"
-                            );
+                        let apply_result =
+                            if !plan_result.requires_replace.is_empty() && prior_state.is_some() {
+                                info!(
+                                    address = %address,
+                                    replace_fields = ?plan_result.requires_replace,
+                                    "Resource requires replacement — destroying old, creating new"
+                                );
 
-                            // Step 1: Destroy the old resource
-                            // Plan a destroy (prior → null)
-                            let destroy_plan = pm
-                                .plan_resource(
-                                    provider_source,
-                                    resource_type,
-                                    prior_state.as_ref(),
-                                    None, // proposed_new = null means destroy
-                                    &config_json,
-                                )
-                                .await?;
+                                // Step 1: Destroy the old resource
+                                // Plan a destroy (prior → null)
+                                let destroy_plan = pm
+                                    .plan_resource(
+                                        provider_source,
+                                        resource_type,
+                                        prior_state.as_ref(),
+                                        None, // proposed_new = null means destroy
+                                        &config_json,
+                                    )
+                                    .await?;
 
-                            // Apply the destroy
-                            let _destroy_result = pm
-                                .apply_resource(
-                                    provider_source,
-                                    resource_type,
-                                    prior_state.as_ref(),
-                                    None, // planned_state = null means destroy
-                                    &config_json,
-                                    &destroy_plan.planned_private,
-                                )
-                                .await?;
+                                // Apply the destroy
+                                let _destroy_result = pm
+                                    .apply_resource(
+                                        provider_source,
+                                        resource_type,
+                                        prior_state.as_ref(),
+                                        None, // planned_state = null means destroy
+                                        &config_json,
+                                        &destroy_plan.planned_private,
+                                    )
+                                    .await?;
 
-                            info!(address = %address, "Old resource destroyed");
+                                info!(address = %address, "Old resource destroyed");
 
-                            // Remove from state database
-                            backend.delete_resource(&ws_id, address).await.ok();
+                                // Remove from state database
+                                backend.delete_resource(&ws_id, address).await.ok();
 
-                            // Step 2: Create the new resource
-                            // Plan a create (null → new)
-                            let create_plan = pm
-                                .plan_resource(
+                                // Step 2: Create the new resource
+                                // Plan a create (null → new)
+                                let create_plan = pm
+                                    .plan_resource(
+                                        provider_source,
+                                        resource_type,
+                                        None, // no prior state
+                                        Some(&config_json),
+                                        &config_json,
+                                    )
+                                    .await?;
+
+                                // Apply the create
+                                pm.apply_resource(
                                     provider_source,
                                     resource_type,
                                     None, // no prior state
-                                    Some(&config_json),
+                                    create_plan.planned_state.as_ref(),
                                     &config_json,
+                                    &create_plan.planned_private,
                                 )
-                                .await?;
-
-                            // Apply the create
-                            pm.apply_resource(
-                                provider_source,
-                                resource_type,
-                                None, // no prior state
-                                create_plan.planned_state.as_ref(),
-                                &config_json,
-                                &create_plan.planned_private,
-                            )
-                            .await?
-                        } else {
-                            // Normal apply (create or in-place update)
-                            pm.apply_resource(
-                                provider_source,
-                                resource_type,
-                                prior_state.as_ref(),
-                                plan_result.planned_state.as_ref(),
-                                &config_json,
-                                &plan_result.planned_private,
-                            )
-                            .await?
-                        };
+                                .await?
+                            } else {
+                                // Normal apply (create or in-place update)
+                                pm.apply_resource(
+                                    provider_source,
+                                    resource_type,
+                                    prior_state.as_ref(),
+                                    plan_result.planned_state.as_ref(),
+                                    &config_json,
+                                    &plan_result.planned_private,
+                                )
+                                .await?
+                            };
 
                         // Store the new state in both the database and the shared map
                         if let Some(ref new_state) = apply_result.new_state {
@@ -530,8 +540,7 @@ impl ResourceEngine {
                             );
                             resource_state.provider_source = provider_source.to_string();
                             resource_state.status = "created".to_string();
-                            resource_state.attributes_json =
-                                serde_json::to_string(new_state)?;
+                            resource_state.attributes_json = serde_json::to_string(new_state)?;
 
                             backend.upsert_resource(&resource_state).await?;
 
@@ -550,8 +559,9 @@ impl ResourceEngine {
                         let user_config = attributes_to_json(&config.attributes, &eval_ctx);
 
                         // Build full config with all schema attributes
-                        let config_json = if let Ok(Some(schema)) =
-                            pm.get_data_source_schema(provider_source, resource_type).await
+                        let config_json = if let Ok(Some(schema)) = pm
+                            .get_data_source_schema(provider_source, resource_type)
+                            .await
                         {
                             build_full_resource_config(&user_config, &schema)
                         } else {
@@ -575,7 +585,13 @@ impl ResourceEngine {
 
         let walker = DagWalker::new(self.parallelism);
         let start = std::time::Instant::now();
-        let results = walker.walk(&graph, Arc::new(executor), crate::dag::walker::WalkMode::Apply).await?;
+        let results = walker
+            .walk(
+                &graph,
+                Arc::new(executor),
+                crate::dag::walker::WalkMode::Apply,
+            )
+            .await?;
         let elapsed_secs = start.elapsed().as_secs();
 
         let failed = results
@@ -612,8 +628,7 @@ impl ResourceEngine {
         workspace_id: &str,
     ) -> Result<ApplySummary> {
         let provider_map = build_provider_map(workspace);
-        let (graph, _node_map) =
-            resource_graph::build_resource_dag(workspace, &provider_map)?;
+        let (graph, _node_map) = resource_graph::build_resource_dag(workspace, &provider_map)?;
 
         // For destroy, we reverse the graph edges so dependents are destroyed first
         let mut reverse_graph = petgraph::graph::DiGraph::new();
@@ -686,7 +701,7 @@ impl ResourceEngine {
                                 provider_source,
                                 resource_type,
                                 current_state.as_ref(),
-                                None,  // null planned state = destroy
+                                None, // null planned state = destroy
                                 &config_json,
                             )
                             .await?;
@@ -697,7 +712,7 @@ impl ResourceEngine {
                                 provider_source,
                                 resource_type,
                                 current_state.as_ref(),
-                                None,  // null planned state = destroy
+                                None, // null planned state = destroy
                                 &config_json,
                                 &plan_result.planned_private,
                             )
@@ -722,10 +737,19 @@ impl ResourceEngine {
 
         let walker = DagWalker::new(self.parallelism);
         let start = std::time::Instant::now();
-        let results = walker.walk(&reverse_graph, Arc::new(executor), crate::dag::walker::WalkMode::Destroy).await?;
+        let results = walker
+            .walk(
+                &reverse_graph,
+                Arc::new(executor),
+                crate::dag::walker::WalkMode::Destroy,
+            )
+            .await?;
         let elapsed_secs = start.elapsed().as_secs();
 
-        let destroyed = results.iter().filter(|r| r.status == NodeStatus::Succeeded).count();
+        let destroyed = results
+            .iter()
+            .filter(|r| r.status == NodeStatus::Succeeded)
+            .count();
         let failed = results
             .iter()
             .filter(|r| matches!(r.status, NodeStatus::Failed(_)))
@@ -753,10 +777,7 @@ impl ResourceEngine {
         let var_defaults = build_variable_defaults(workspace);
 
         for provider in &workspace.providers {
-            let version = provider
-                .version_constraint
-                .as_deref()
-                .unwrap_or(">= 0.0.0");
+            let version = provider.version_constraint.as_deref().unwrap_or(">= 0.0.0");
 
             info!(
                 provider = %provider.source,
@@ -782,16 +803,15 @@ impl ResourceEngine {
             // Build full provider config with all attributes (unset ones as null)
             let user_config = resolve_attributes(&provider.config, &var_defaults);
             let full_config = build_full_provider_config(&user_config, &schema);
-            info!("Configuring provider with {} attributes",
-                full_config.as_object().map(|m| m.len()).unwrap_or(0));
+            info!(
+                "Configuring provider with {} attributes",
+                full_config.as_object().map(|m| m.len()).unwrap_or(0)
+            );
 
             self.provider_manager
                 .configure_provider(&provider.source, &full_config)
                 .await
-                .context(format!(
-                    "Failed to configure provider {}",
-                    provider.source
-                ))?;
+                .context(format!("Failed to configure provider {}", provider.source))?;
         }
 
         Ok(())
@@ -843,7 +863,10 @@ impl EvalContext {
         var_defaults: HashMap<String, serde_json::Value>,
         resource_states: Arc<DashMap<String, serde_json::Value>>,
     ) -> Self {
-        Self { var_defaults, resource_states }
+        Self {
+            var_defaults,
+            resource_states,
+        }
     }
 }
 
@@ -897,14 +920,18 @@ fn eval_expression(
             let evaluated_args: Vec<serde_json::Value> =
                 args.iter().map(|a| eval_expression(a, ctx)).collect();
             match name.as_str() {
-                "tolist" | "toset" => evaluated_args.into_iter().next().unwrap_or(serde_json::Value::Null),
+                "tolist" | "toset" => evaluated_args
+                    .into_iter()
+                    .next()
+                    .unwrap_or(serde_json::Value::Null),
                 "tostring" => match evaluated_args.into_iter().next() {
                     Some(serde_json::Value::String(s)) => serde_json::Value::String(s),
                     Some(v) => serde_json::Value::String(v.to_string()),
                     None => serde_json::Value::Null,
                 },
                 "tonumber" => match evaluated_args.first() {
-                    Some(serde_json::Value::String(s)) => s.parse::<f64>()
+                    Some(serde_json::Value::String(s)) => s
+                        .parse::<f64>()
                         .map(|n| serde_json::json!(n))
                         .unwrap_or(serde_json::Value::Null),
                     Some(v @ serde_json::Value::Number(_)) => v.clone(),
@@ -919,7 +946,10 @@ fn eval_expression(
                     Some(v @ serde_json::Value::Bool(_)) => v.clone(),
                     _ => serde_json::Value::Null,
                 },
-                "tomap" => evaluated_args.into_iter().next().unwrap_or(serde_json::Value::Null),
+                "tomap" => evaluated_args
+                    .into_iter()
+                    .next()
+                    .unwrap_or(serde_json::Value::Null),
                 "jsonencode" => {
                     if let Some(val) = evaluated_args.into_iter().next() {
                         match serde_json::to_string(&val) {
@@ -968,7 +998,11 @@ fn eval_expression(
                 }
                 "keys" => {
                     if let Some(serde_json::Value::Object(m)) = evaluated_args.first() {
-                        serde_json::Value::Array(m.keys().map(|k| serde_json::Value::String(k.clone())).collect())
+                        serde_json::Value::Array(
+                            m.keys()
+                                .map(|k| serde_json::Value::String(k.clone()))
+                                .collect(),
+                        )
                     } else {
                         serde_json::Value::Array(vec![])
                     }
@@ -984,8 +1018,15 @@ fn eval_expression(
                     let map = evaluated_args.first();
                     let key = evaluated_args.get(1);
                     let default = evaluated_args.get(2);
-                    if let (Some(serde_json::Value::Object(m)), Some(serde_json::Value::String(k))) = (map, key) {
-                        m.get(k).cloned().or_else(|| default.cloned()).unwrap_or(serde_json::Value::Null)
+                    if let (
+                        Some(serde_json::Value::Object(m)),
+                        Some(serde_json::Value::String(k)),
+                    ) = (map, key)
+                    {
+                        m.get(k)
+                            .cloned()
+                            .or_else(|| default.cloned())
+                            .unwrap_or(serde_json::Value::Null)
                     } else {
                         default.cloned().unwrap_or(serde_json::Value::Null)
                     }
@@ -993,31 +1034,48 @@ fn eval_expression(
                 "element" => {
                     let list = evaluated_args.first();
                     let idx = evaluated_args.get(1);
-                    if let (Some(serde_json::Value::Array(arr)), Some(serde_json::Value::Number(n))) = (list, idx) {
+                    if let (
+                        Some(serde_json::Value::Array(arr)),
+                        Some(serde_json::Value::Number(n)),
+                    ) = (list, idx)
+                    {
                         let i = n.as_u64().unwrap_or(0) as usize;
-                        arr.get(i % arr.len().max(1)).cloned().unwrap_or(serde_json::Value::Null)
+                        arr.get(i % arr.len().max(1))
+                            .cloned()
+                            .unwrap_or(serde_json::Value::Null)
                     } else {
                         serde_json::Value::Null
                     }
                 }
                 "join" => {
-                    if let (Some(serde_json::Value::String(sep)), Some(serde_json::Value::Array(arr))) =
-                        (evaluated_args.first(), evaluated_args.get(1))
+                    if let (
+                        Some(serde_json::Value::String(sep)),
+                        Some(serde_json::Value::Array(arr)),
+                    ) = (evaluated_args.first(), evaluated_args.get(1))
                     {
-                        let parts: Vec<String> = arr.iter().map(|v| match v {
-                            serde_json::Value::String(s) => s.clone(),
-                            other => other.to_string(),
-                        }).collect();
+                        let parts: Vec<String> = arr
+                            .iter()
+                            .map(|v| match v {
+                                serde_json::Value::String(s) => s.clone(),
+                                other => other.to_string(),
+                            })
+                            .collect();
                         serde_json::Value::String(parts.join(sep))
                     } else {
                         serde_json::Value::String(String::new())
                     }
                 }
                 "split" => {
-                    if let (Some(serde_json::Value::String(sep)), Some(serde_json::Value::String(s))) =
-                        (evaluated_args.first(), evaluated_args.get(1))
+                    if let (
+                        Some(serde_json::Value::String(sep)),
+                        Some(serde_json::Value::String(s)),
+                    ) = (evaluated_args.first(), evaluated_args.get(1))
                     {
-                        serde_json::Value::Array(s.split(sep.as_str()).map(|p| serde_json::Value::String(p.to_string())).collect())
+                        serde_json::Value::Array(
+                            s.split(sep.as_str())
+                                .map(|p| serde_json::Value::String(p.to_string()))
+                                .collect(),
+                        )
                     } else {
                         serde_json::Value::Array(vec![])
                     }
@@ -1033,7 +1091,11 @@ fn eval_expression(
                                 serde_json::Value::Bool(b) => b.to_string(),
                                 other => other.to_string(),
                             };
-                            if let Some(pos) = result.find("%s").or_else(|| result.find("%d")).or_else(|| result.find("%v")) {
+                            if let Some(pos) = result
+                                .find("%s")
+                                .or_else(|| result.find("%d"))
+                                .or_else(|| result.find("%v"))
+                            {
                                 result.replace_range(pos..pos + 2, &replacement);
                             }
                         }
@@ -1042,43 +1104,57 @@ fn eval_expression(
                         serde_json::Value::String(String::new())
                     }
                 }
-                "coalesce" => {
-                    evaluated_args.into_iter()
-                        .find(|v| !v.is_null() && *v != serde_json::Value::String(String::new()))
-                        .unwrap_or(serde_json::Value::Null)
-                }
+                "coalesce" => evaluated_args
+                    .into_iter()
+                    .find(|v| !v.is_null() && *v != serde_json::Value::String(String::new()))
+                    .unwrap_or(serde_json::Value::Null),
                 "lower" => match evaluated_args.into_iter().next() {
-                    Some(serde_json::Value::String(s)) => serde_json::Value::String(s.to_lowercase()),
+                    Some(serde_json::Value::String(s)) => {
+                        serde_json::Value::String(s.to_lowercase())
+                    }
                     _ => serde_json::Value::Null,
                 },
                 "upper" => match evaluated_args.into_iter().next() {
-                    Some(serde_json::Value::String(s)) => serde_json::Value::String(s.to_uppercase()),
+                    Some(serde_json::Value::String(s)) => {
+                        serde_json::Value::String(s.to_uppercase())
+                    }
                     _ => serde_json::Value::Null,
                 },
                 "trim" | "trimspace" => match evaluated_args.into_iter().next() {
-                    Some(serde_json::Value::String(s)) => serde_json::Value::String(s.trim().to_string()),
+                    Some(serde_json::Value::String(s)) => {
+                        serde_json::Value::String(s.trim().to_string())
+                    }
                     _ => serde_json::Value::Null,
                 },
                 "replace" => {
-                    if let (Some(serde_json::Value::String(s)), Some(serde_json::Value::String(old)), Some(serde_json::Value::String(new))) =
-                        (evaluated_args.first(), evaluated_args.get(1), evaluated_args.get(2))
-                    {
+                    if let (
+                        Some(serde_json::Value::String(s)),
+                        Some(serde_json::Value::String(old)),
+                        Some(serde_json::Value::String(new)),
+                    ) = (
+                        evaluated_args.first(),
+                        evaluated_args.get(1),
+                        evaluated_args.get(2),
+                    ) {
                         serde_json::Value::String(s.replace(old.as_str(), new.as_str()))
                     } else {
                         serde_json::Value::Null
                     }
                 }
-                "try" => {
-                    evaluated_args.into_iter()
-                        .find(|v| !v.is_null())
-                        .unwrap_or(serde_json::Value::Null)
-                }
+                "try" => evaluated_args
+                    .into_iter()
+                    .find(|v| !v.is_null())
+                    .unwrap_or(serde_json::Value::Null),
                 "compact" => {
                     if let Some(serde_json::Value::Array(arr)) = evaluated_args.into_iter().next() {
-                        serde_json::Value::Array(arr.into_iter().filter(|v| {
-                            !matches!(v, serde_json::Value::String(s) if s.is_empty())
-                                && !v.is_null()
-                        }).collect())
+                        serde_json::Value::Array(
+                            arr.into_iter()
+                                .filter(|v| {
+                                    !matches!(v, serde_json::Value::String(s) if s.is_empty())
+                                        && !v.is_null()
+                                })
+                                .collect(),
+                        )
                     } else {
                         serde_json::Value::Array(vec![])
                     }
@@ -1120,7 +1196,11 @@ fn eval_expression(
                 }
             }
         }
-        Expression::Conditional { condition, true_val, false_val } => {
+        Expression::Conditional {
+            condition,
+            true_val,
+            false_val,
+        } => {
             let cond = eval_expression(condition, ctx);
             let is_true = match &cond {
                 serde_json::Value::Bool(b) => *b,
@@ -1197,10 +1277,7 @@ fn traverse_json_value(value: &serde_json::Value, path: &[String]) -> serde_json
 }
 
 /// Resolve a literal Value to JSON, handling string interpolation in nested values.
-fn resolve_value_json(
-    val: &crate::config::types::Value,
-    ctx: &EvalContext,
-) -> serde_json::Value {
+fn resolve_value_json(val: &crate::config::types::Value, ctx: &EvalContext) -> serde_json::Value {
     use crate::config::types::Value;
     match val {
         Value::Null => serde_json::Value::Null,
@@ -1229,10 +1306,7 @@ fn resolve_value_json(
 
 /// Resolve `${...}` interpolations in a string value.
 /// Handles both variable refs (${var.xxx}) and resource refs (${aws_s3_bucket.xxx.id}).
-fn resolve_interpolated_string(
-    s: &str,
-    ctx: &EvalContext,
-) -> serde_json::Value {
+fn resolve_interpolated_string(s: &str, ctx: &EvalContext) -> serde_json::Value {
     // If the string is a single interpolation like "${aws_s3_bucket.xxx.id}",
     // return the raw value (could be non-string)
     if s.starts_with("${") && s.ends_with('}') && s.matches("${").count() == 1 {
@@ -1399,7 +1473,8 @@ fn populate_block_attributes(
                         }
                         // LIST/SET: already an array → populate each element
                         (true, serde_json::Value::Array(arr)) => {
-                            let populated: Vec<serde_json::Value> = arr.iter()
+                            let populated: Vec<serde_json::Value> = arr
+                                .iter()
                                 .map(|item| populate_nested_object(item, nested_block_schema))
                                 .collect();
                             serde_json::Value::Array(populated)
@@ -1415,10 +1490,10 @@ fn populate_block_attributes(
                 }
 
                 let default_val = match nesting {
-                    1 => serde_json::Value::Null,       // SINGLE → null
-                    4 => serde_json::json!({}),          // MAP → empty map
-                    5 => serde_json::Value::Null,        // GROUP → null
-                    _ => serde_json::json!([]),           // LIST(2)/SET(3) → empty array
+                    1 => serde_json::Value::Null, // SINGLE → null
+                    4 => serde_json::json!({}),   // MAP → empty map
+                    5 => serde_json::Value::Null, // GROUP → null
+                    _ => serde_json::json!([]),   // LIST(2)/SET(3) → empty array
                 };
                 full.insert(name.to_string(), default_val);
             }
@@ -1452,7 +1527,10 @@ fn populate_nested_object(
 ///   ["set", ["object", {"attr1": "string", "attr2": "number"}]]
 ///   ["object", {"attr1": "string"}]
 ///   ["map", "string"]
-fn coerce_value_to_cty_type(value: serde_json::Value, cty_type: &serde_json::Value) -> serde_json::Value {
+fn coerce_value_to_cty_type(
+    value: serde_json::Value,
+    cty_type: &serde_json::Value,
+) -> serde_json::Value {
     if value.is_null() {
         return value;
     }
@@ -1471,7 +1549,8 @@ fn coerce_value_to_cty_type(value: serde_json::Value, cty_type: &serde_json::Val
                         }
                         // Already an array → populate each element
                         serde_json::Value::Array(items) => {
-                            let populated: Vec<serde_json::Value> = items.iter()
+                            let populated: Vec<serde_json::Value> = items
+                                .iter()
                                 .map(|item| populate_object_from_cty(item.clone(), elem_type))
                                 .collect();
                             serde_json::Value::Array(populated)
@@ -1490,7 +1569,10 @@ fn coerce_value_to_cty_type(value: serde_json::Value, cty_type: &serde_json::Val
 /// Populate a JSON object with all attributes from a cty object type definition.
 /// cty object type is ["object", {"attr1": "string", "attr2": "number", ...}]
 /// The second element is a map of attribute names to their types.
-fn populate_object_from_cty(value: serde_json::Value, cty_elem_type: &serde_json::Value) -> serde_json::Value {
+fn populate_object_from_cty(
+    value: serde_json::Value,
+    cty_elem_type: &serde_json::Value,
+) -> serde_json::Value {
     // If the element type is ["object", {attr_map}], populate missing attrs as null
     if let serde_json::Value::Array(arr) = cty_elem_type {
         if arr.len() == 2 && arr[0].as_str() == Some("object") {

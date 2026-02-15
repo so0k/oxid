@@ -76,8 +76,8 @@ impl StateBackend for SqliteBackend {
 
     async fn get_workspace(&self, name: &str) -> Result<Option<Workspace>> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt =
-            conn.prepare("SELECT id, name, created_at, updated_at FROM workspaces WHERE name = ?1")?;
+        let mut stmt = conn
+            .prepare("SELECT id, name, created_at, updated_at FROM workspaces WHERE name = ?1")?;
         let result = stmt
             .query_row(params![name], |row| {
                 Ok(Workspace {
@@ -219,8 +219,10 @@ impl StateBackend for SqliteBackend {
         sql.push_str(" ORDER BY address");
 
         let mut stmt = conn.prepare(&sql)?;
-        let param_refs: Vec<&dyn rusqlite::ToSql> =
-            param_values.iter().map(|v| v as &dyn rusqlite::ToSql).collect();
+        let param_refs: Vec<&dyn rusqlite::ToSql> = param_values
+            .iter()
+            .map(|v| v as &dyn rusqlite::ToSql)
+            .collect();
         let rows = stmt
             .query_map(param_refs.as_slice(), |row| Ok(resource_from_row(row)))?
             .collect::<Result<Vec<_>, _>>()?;
@@ -260,9 +262,8 @@ impl StateBackend for SqliteBackend {
 
     async fn get_dependencies(&self, resource_id: &str) -> Result<Vec<String>> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
-            "SELECT depends_on_id FROM resource_dependencies WHERE resource_id = ?1",
-        )?;
+        let mut stmt =
+            conn.prepare("SELECT depends_on_id FROM resource_dependencies WHERE resource_id = ?1")?;
         let rows = stmt
             .query_map(params![resource_id], |row| row.get(0))?
             .collect::<Result<Vec<String>, _>>()?;
@@ -271,9 +272,8 @@ impl StateBackend for SqliteBackend {
 
     async fn get_dependents(&self, resource_id: &str) -> Result<Vec<String>> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
-            "SELECT resource_id FROM resource_dependencies WHERE depends_on_id = ?1",
-        )?;
+        let mut stmt =
+            conn.prepare("SELECT resource_id FROM resource_dependencies WHERE depends_on_id = ?1")?;
         let rows = stmt
             .query_map(params![resource_id], |row| row.get(0))?
             .collect::<Result<Vec<String>, _>>()?;
@@ -291,9 +291,9 @@ impl StateBackend for SqliteBackend {
         let conn = self.conn.lock().unwrap();
         let now = Self::now();
         let lock_id = uuid::Uuid::new_v4().to_string();
-        let expires_at = info.ttl_secs.map(|ttl| {
-            (chrono::Utc::now() + chrono::Duration::seconds(ttl as i64)).to_rfc3339()
-        });
+        let expires_at = info
+            .ttl_secs
+            .map(|ttl| (chrono::Utc::now() + chrono::Duration::seconds(ttl as i64)).to_rfc3339());
 
         // Clean up expired locks first
         conn.execute(
@@ -444,14 +444,17 @@ impl StateBackend for SqliteBackend {
         } else {
             (
                 "SELECT id, workspace_id, module_path, output_name, output_value, sensitive
-                 FROM resource_outputs WHERE workspace_id = ?1 ORDER BY module_path, output_name".to_string(),
+                 FROM resource_outputs WHERE workspace_id = ?1 ORDER BY module_path, output_name"
+                    .to_string(),
                 vec![workspace_id.to_string()],
             )
         };
 
         let mut stmt = conn.prepare(&sql)?;
-        let param_refs: Vec<&dyn rusqlite::ToSql> =
-            param_values.iter().map(|v| v as &dyn rusqlite::ToSql).collect();
+        let param_refs: Vec<&dyn rusqlite::ToSql> = param_values
+            .iter()
+            .map(|v| v as &dyn rusqlite::ToSql)
+            .collect();
         let rows = stmt
             .query_map(param_refs.as_slice(), |row| {
                 Ok(OutputValue {
@@ -512,11 +515,7 @@ impl StateBackend for SqliteBackend {
         Ok(())
     }
 
-    async fn record_resource_result(
-        &self,
-        run_id: &str,
-        result: &ResourceResult,
-    ) -> Result<()> {
+    async fn record_resource_result(&self, run_id: &str, result: &ResourceResult) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
             "INSERT INTO run_resources (run_id, resource_address, action, status, started_at, completed_at, error_message, diff_json)
@@ -595,11 +594,7 @@ impl StateBackend for SqliteBackend {
     async fn query_raw(&self, sql: &str) -> Result<Vec<serde_json::Value>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(sql)?;
-        let column_names: Vec<String> = stmt
-            .column_names()
-            .iter()
-            .map(|s| s.to_string())
-            .collect();
+        let column_names: Vec<String> = stmt.column_names().iter().map(|s| s.to_string()).collect();
 
         let rows = stmt.query_map([], |row| {
             let mut map = serde_json::Map::new();
@@ -637,13 +632,9 @@ impl StateBackend for SqliteBackend {
 
     // ─── Import ─────────────────────────────────────────────────────────────
 
-    async fn import_tfstate(
-        &self,
-        workspace_id: &str,
-        state_json: &str,
-    ) -> Result<ImportResult> {
-        let state: TfState = serde_json::from_str(state_json)
-            .context("Failed to parse .tfstate JSON")?;
+    async fn import_tfstate(&self, workspace_id: &str, state_json: &str) -> Result<ImportResult> {
+        let state: TfState =
+            serde_json::from_str(state_json).context("Failed to parse .tfstate JSON")?;
 
         let mut imported = 0;
         let mut skipped = 0;
@@ -656,9 +647,15 @@ impl StateBackend for SqliteBackend {
             for (idx, instance) in tf_resource.instances.iter().enumerate() {
                 let address = if tf_resource.instances.len() > 1 {
                     if let Some(ref key) = instance.index_key {
-                        format!("{}.{}[{}]", tf_resource.resource_type, tf_resource.name, key)
+                        format!(
+                            "{}.{}[{}]",
+                            tf_resource.resource_type, tf_resource.name, key
+                        )
                     } else {
-                        format!("{}.{}[{}]", tf_resource.resource_type, tf_resource.name, idx)
+                        format!(
+                            "{}.{}[{}]",
+                            tf_resource.resource_type, tf_resource.name, idx
+                        )
                     }
                 } else {
                     format!("{}.{}", tf_resource.resource_type, tf_resource.name)
@@ -748,10 +745,7 @@ impl StateBackend for SqliteBackend {
         Ok(id)
     }
 
-    async fn list_providers(
-        &self,
-        workspace_id: &str,
-    ) -> Result<Vec<(String, String, String)>> {
+    async fn list_providers(&self, workspace_id: &str) -> Result<Vec<(String, String, String)>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT id, source, version FROM providers WHERE workspace_id = ?1 ORDER BY source",
@@ -769,8 +763,7 @@ impl StateBackend for SqliteBackend {
 
 fn resource_from_row(row: &rusqlite::Row<'_>) -> ResourceState {
     let sensitive_json: String = row.get(11).unwrap_or_default();
-    let sensitive_attrs: Vec<String> =
-        serde_json::from_str(&sensitive_json).unwrap_or_default();
+    let sensitive_attrs: Vec<String> = serde_json::from_str(&sensitive_json).unwrap_or_default();
 
     ResourceState {
         id: row.get(0).unwrap_or_default(),

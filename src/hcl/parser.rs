@@ -19,8 +19,7 @@ pub fn parse_hcl(content: &str, file_path: &Path) -> Result<WorkspaceConfig> {
                 let ident = block.identifier().to_string();
                 match ident.as_str() {
                     "terraform" => {
-                        workspace.terraform_settings =
-                            Some(parse_terraform_block(&block)?);
+                        workspace.terraform_settings = Some(parse_terraform_block(&block)?);
                     }
                     "provider" => {
                         if let Some(provider) = parse_provider_block(&block)? {
@@ -119,7 +118,11 @@ fn parse_required_provider(expr: &hcl::Expression) -> Result<RequiredProvider> {
 }
 
 fn parse_provider_block(block: &hcl::Block) -> Result<Option<ProviderConfig>> {
-    let labels: Vec<String> = block.labels().iter().map(|l| l.as_str().to_string()).collect();
+    let labels: Vec<String> = block
+        .labels()
+        .iter()
+        .map(|l| l.as_str().to_string())
+        .collect();
     if labels.is_empty() {
         return Ok(None);
     }
@@ -149,7 +152,11 @@ fn parse_provider_block(block: &hcl::Block) -> Result<Option<ProviderConfig>> {
 }
 
 fn parse_resource_block(block: &hcl::Block, file: &str) -> Result<Option<ResourceConfig>> {
-    let labels: Vec<String> = block.labels().iter().map(|l| l.as_str().to_string()).collect();
+    let labels: Vec<String> = block
+        .labels()
+        .iter()
+        .map(|l| l.as_str().to_string())
+        .collect();
     if labels.len() < 2 {
         return Ok(None);
     }
@@ -158,7 +165,11 @@ fn parse_resource_block(block: &hcl::Block, file: &str) -> Result<Option<Resourc
 }
 
 fn parse_data_block(block: &hcl::Block, file: &str) -> Result<Option<ResourceConfig>> {
-    let labels: Vec<String> = block.labels().iter().map(|l| l.as_str().to_string()).collect();
+    let labels: Vec<String> = block
+        .labels()
+        .iter()
+        .map(|l| l.as_str().to_string())
+        .collect();
     if labels.len() < 2 {
         return Ok(None);
     }
@@ -218,10 +229,8 @@ fn parse_resource_body(
                                         when = ProvisionerWhen::Destroy;
                                     }
                                 } else {
-                                    prov_config.insert(
-                                        k.to_string(),
-                                        hcl_expr_to_expression(&a.expr),
-                                    );
+                                    prov_config
+                                        .insert(k.to_string(), hcl_expr_to_expression(&a.expr));
                                 }
                             }
                         }
@@ -280,7 +289,11 @@ fn parse_lifecycle_block(block: &hcl::Block) -> LifecycleConfig {
 }
 
 fn parse_variable_block(block: &hcl::Block) -> Result<Option<VariableConfig>> {
-    let labels: Vec<String> = block.labels().iter().map(|l| l.as_str().to_string()).collect();
+    let labels: Vec<String> = block
+        .labels()
+        .iter()
+        .map(|l| l.as_str().to_string())
+        .collect();
     if labels.is_empty() {
         return Ok(None);
     }
@@ -340,7 +353,11 @@ fn parse_variable_block(block: &hcl::Block) -> Result<Option<VariableConfig>> {
 }
 
 fn parse_output_block(block: &hcl::Block) -> Result<Option<OutputConfig>> {
-    let labels: Vec<String> = block.labels().iter().map(|l| l.as_str().to_string()).collect();
+    let labels: Vec<String> = block
+        .labels()
+        .iter()
+        .map(|l| l.as_str().to_string())
+        .collect();
     if labels.is_empty() {
         return Ok(None);
     }
@@ -374,7 +391,11 @@ fn parse_output_block(block: &hcl::Block) -> Result<Option<OutputConfig>> {
 }
 
 fn parse_module_block(block: &hcl::Block) -> Result<Option<ModuleRef>> {
-    let labels: Vec<String> = block.labels().iter().map(|l| l.as_str().to_string()).collect();
+    let labels: Vec<String> = block
+        .labels()
+        .iter()
+        .map(|l| l.as_str().to_string())
+        .collect();
     if labels.is_empty() {
         return Ok(None);
     }
@@ -423,10 +444,7 @@ fn parse_locals_block(block: &hcl::Block) -> Result<HashMap<String, Expression>>
 
     for structure in block.body().iter() {
         if let hcl::Structure::Attribute(attr) = structure {
-            locals.insert(
-                attr.key.to_string(),
-                hcl_expr_to_expression(&attr.expr),
-            );
+            locals.insert(attr.key.to_string(), hcl_expr_to_expression(&attr.expr));
         }
     }
 
@@ -730,8 +748,7 @@ fn parse_template_string(s: &str) -> Expression {
 
         if let Some(end) = remaining[start + 2..].find('}') {
             let ref_str = &remaining[start + 2..start + 2 + end];
-            let ref_parts: Vec<String> =
-                ref_str.split('.').map(|s| s.trim().to_string()).collect();
+            let ref_parts: Vec<String> = ref_str.split('.').map(|s| s.trim().to_string()).collect();
             parts.push(TemplatePart::Interpolation(Box::new(
                 Expression::Reference(ref_parts),
             )));

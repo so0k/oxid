@@ -137,7 +137,12 @@ impl RegistryClient {
             if versions.iter().any(|(v, _)| v == constraint) {
                 return Ok(constraint.to_string());
             }
-            bail!("Version {} not found for {}/{}", constraint, namespace, provider_type);
+            bail!(
+                "Version {} not found for {}/{}",
+                constraint,
+                namespace,
+                provider_type
+            );
         }
 
         // ~> pessimistic constraint: ~> 1.2 means >= 1.2.0, < 2.0.0
@@ -151,8 +156,7 @@ impl RegistryClient {
             let mut matching: Vec<&str> = versions
                 .iter()
                 .filter(|(v, _)| {
-                    let v_parts: Vec<u64> =
-                        v.split('.').filter_map(|p| p.parse().ok()).collect();
+                    let v_parts: Vec<u64> = v.split('.').filter_map(|p| p.parse().ok()).collect();
                     if v_parts.len() < parts.len() {
                         return false;
                     }
@@ -163,7 +167,10 @@ impl RegistryClient {
                         }
                     }
                     let last_idx = parts.len() - 1;
-                    v_parts.get(last_idx).map(|v| *v >= parts[last_idx]).unwrap_or(false)
+                    v_parts
+                        .get(last_idx)
+                        .map(|v| *v >= parts[last_idx])
+                        .unwrap_or(false)
                 })
                 .map(|(v, _)| v.as_str())
                 .collect();
@@ -187,8 +194,7 @@ impl RegistryClient {
             let mut matching: Vec<&str> = versions
                 .iter()
                 .filter(|(v, _)| {
-                    let v_parts: Vec<u64> =
-                        v.split('.').filter_map(|p| p.parse().ok()).collect();
+                    let v_parts: Vec<u64> = v.split('.').filter_map(|p| p.parse().ok()).collect();
                     compare_version_tuples(&v_parts, &min_parts) != std::cmp::Ordering::Less
                 })
                 .map(|(v, _)| v.as_str())

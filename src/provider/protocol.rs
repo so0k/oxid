@@ -142,7 +142,10 @@ impl ProviderConnection {
         // responses (like the AWS provider's ~20MB schema) to hang indefinitely.
         let endpoint_addr = if handshake.network_type == "unix" {
             let socket_path = handshake.address.clone();
-            info!("Connecting to provider gRPC via unix socket: {}", socket_path);
+            info!(
+                "Connecting to provider gRPC via unix socket: {}",
+                socket_path
+            );
 
             // Bind a TCP listener on an ephemeral port
             let tcp_listener = TcpListener::bind("127.0.0.1:0")
@@ -175,7 +178,8 @@ impl ProviderConnection {
                                     Err(e) => {
                                         tracing::error!(
                                             "Failed to connect to unix socket {}: {}",
-                                            path, e
+                                            path,
+                                            e
                                         );
                                     }
                                 }
@@ -262,12 +266,15 @@ impl ProviderConnection {
                     inner.resource_schemas.len(),
                     inner.data_source_schemas.len()
                 );
-                let resource_schemas: std::collections::HashMap<String, serde_json::Value> =
-                    inner.resource_schemas.iter()
-                        .map(|(k, v)| (k.clone(), schema_to_json_v5(v)))
-                        .collect();
+                let resource_schemas: std::collections::HashMap<String, serde_json::Value> = inner
+                    .resource_schemas
+                    .iter()
+                    .map(|(k, v)| (k.clone(), schema_to_json_v5(v)))
+                    .collect();
                 let data_source_schemas: std::collections::HashMap<String, serde_json::Value> =
-                    inner.data_source_schemas.iter()
+                    inner
+                        .data_source_schemas
+                        .iter()
                         .map(|(k, v)| (k.clone(), schema_to_json_v5(v)))
                         .collect();
                 let resource_types: Vec<&String> = resource_schemas.keys().collect();
@@ -304,12 +311,15 @@ impl ProviderConnection {
                     inner.resource_schemas.len(),
                     inner.data_source_schemas.len()
                 );
-                let resource_schemas: std::collections::HashMap<String, serde_json::Value> =
-                    inner.resource_schemas.iter()
-                        .map(|(k, v)| (k.clone(), schema_to_json_v6(v)))
-                        .collect();
+                let resource_schemas: std::collections::HashMap<String, serde_json::Value> = inner
+                    .resource_schemas
+                    .iter()
+                    .map(|(k, v)| (k.clone(), schema_to_json_v6(v)))
+                    .collect();
                 let data_source_schemas: std::collections::HashMap<String, serde_json::Value> =
-                    inner.data_source_schemas.iter()
+                    inner
+                        .data_source_schemas
+                        .iter()
                         .map(|(k, v)| (k.clone(), schema_to_json_v6(v)))
                         .collect();
                 let resource_types: Vec<&String> = resource_schemas.keys().collect();
@@ -373,13 +383,11 @@ impl ProviderConnection {
                     }),
                     client_capabilities: None,
                 };
-                let response = tokio::time::timeout(
-                    timeout_dur,
-                    client.configure_provider(request),
-                )
-                .await
-                .map_err(|_| anyhow::anyhow!("ConfigureProvider RPC timed out after 30s"))?
-                .context("ConfigureProvider RPC failed")?;
+                let response =
+                    tokio::time::timeout(timeout_dur, client.configure_provider(request))
+                        .await
+                        .map_err(|_| anyhow::anyhow!("ConfigureProvider RPC timed out after 30s"))?
+                        .context("ConfigureProvider RPC failed")?;
                 check_diagnostics_v6(&response.into_inner().diagnostics)?;
             }
         }
@@ -395,9 +403,11 @@ impl ProviderConnection {
         proposed_new_state: Option<&serde_json::Value>,
         config: &serde_json::Value,
     ) -> Result<PlanResult> {
-        debug!("PlanResourceChange for {}: config keys = {:?}",
+        debug!(
+            "PlanResourceChange for {}: config keys = {:?}",
             type_name,
-            config.as_object().map(|m| m.keys().collect::<Vec<_>>()));
+            config.as_object().map(|m| m.keys().collect::<Vec<_>>())
+        );
 
         let timeout_dur = std::time::Duration::from_secs(30);
 
@@ -412,25 +422,42 @@ impl ProviderConnection {
                 let request = super::tfplugin5::plan_resource_change::Request {
                     type_name: type_name.to_string(),
                     prior_state: Some(json_to_dynamic_v5(prior_state.unwrap_or(&null_val))),
-                    proposed_new_state: Some(json_to_dynamic_v5(proposed_new_state.unwrap_or(&null_val))),
+                    proposed_new_state: Some(json_to_dynamic_v5(
+                        proposed_new_state.unwrap_or(&null_val),
+                    )),
                     config: Some(json_to_dynamic_v5(config)),
                     prior_private: vec![],
                     provider_meta: Some(json_to_dynamic_v5(&provider_meta_val)),
                     client_capabilities: None,
                     prior_identity: None,
                 };
-                let response = tokio::time::timeout(timeout_dur, client
-                    .plan_resource_change(request))
-                    .await
-                    .map_err(|_| anyhow::anyhow!("PlanResourceChange RPC timed out after 30s for {}", type_name))?
-                    .map_err(|e| anyhow::anyhow!("PlanResourceChange RPC failed for {}: {}", type_name, e))?;
+                let response =
+                    tokio::time::timeout(timeout_dur, client.plan_resource_change(request))
+                        .await
+                        .map_err(|_| {
+                            anyhow::anyhow!(
+                                "PlanResourceChange RPC timed out after 30s for {}",
+                                type_name
+                            )
+                        })?
+                        .map_err(|e| {
+                            anyhow::anyhow!(
+                                "PlanResourceChange RPC failed for {}: {}",
+                                type_name,
+                                e
+                            )
+                        })?;
                 let inner = response.into_inner();
                 // Log the error details for debugging
                 for d in &inner.diagnostics {
                     if d.severity == super::tfplugin5::diagnostic::Severity::Error as i32 {
                         if let Some(ref attr) = d.attribute {
-                            info!("Diagnostic error at {:?}: {} - {}",
-                                attribute_path_to_string_v5(attr), d.summary, d.detail);
+                            info!(
+                                "Diagnostic error at {:?}: {} - {}",
+                                attribute_path_to_string_v5(attr),
+                                d.summary,
+                                d.detail
+                            );
                         } else {
                             info!("Diagnostic error: {} - {}", d.summary, d.detail);
                         }
@@ -458,18 +485,31 @@ impl ProviderConnection {
                 let request = super::tfplugin6::plan_resource_change::Request {
                     type_name: type_name.to_string(),
                     prior_state: Some(json_to_dynamic_v6(prior_state.unwrap_or(&null_val))),
-                    proposed_new_state: Some(json_to_dynamic_v6(proposed_new_state.unwrap_or(&null_val))),
+                    proposed_new_state: Some(json_to_dynamic_v6(
+                        proposed_new_state.unwrap_or(&null_val),
+                    )),
                     config: Some(json_to_dynamic_v6(config)),
                     prior_private: vec![],
                     provider_meta: None,
                     client_capabilities: None,
                     prior_identity: None,
                 };
-                let response = tokio::time::timeout(timeout_dur, client
-                    .plan_resource_change(request))
-                    .await
-                    .map_err(|_| anyhow::anyhow!("PlanResourceChange RPC timed out after 30s for {}", type_name))?
-                    .map_err(|e| anyhow::anyhow!("PlanResourceChange RPC failed for {}: {}", type_name, e))?;
+                let response =
+                    tokio::time::timeout(timeout_dur, client.plan_resource_change(request))
+                        .await
+                        .map_err(|_| {
+                            anyhow::anyhow!(
+                                "PlanResourceChange RPC timed out after 30s for {}",
+                                type_name
+                            )
+                        })?
+                        .map_err(|e| {
+                            anyhow::anyhow!(
+                                "PlanResourceChange RPC failed for {}: {}",
+                                type_name,
+                                e
+                            )
+                        })?;
                 let inner = response.into_inner();
                 check_diagnostics_v6(&inner.diagnostics)?;
                 let planned_state = inner
@@ -521,17 +561,32 @@ impl ProviderConnection {
                     provider_meta: Some(json_to_dynamic_v5(&provider_meta_val)),
                     planned_identity: None,
                 };
-                let response = tokio::time::timeout(timeout_dur, client
-                    .apply_resource_change(request))
-                    .await
-                    .map_err(|_| anyhow::anyhow!("ApplyResourceChange RPC timed out after 600s for {}", type_name))?
-                    .map_err(|e| anyhow::anyhow!("ApplyResourceChange RPC failed for {}: {}", type_name, e))?;
+                let response =
+                    tokio::time::timeout(timeout_dur, client.apply_resource_change(request))
+                        .await
+                        .map_err(|_| {
+                            anyhow::anyhow!(
+                                "ApplyResourceChange RPC timed out after 600s for {}",
+                                type_name
+                            )
+                        })?
+                        .map_err(|e| {
+                            anyhow::anyhow!(
+                                "ApplyResourceChange RPC failed for {}: {}",
+                                type_name,
+                                e
+                            )
+                        })?;
                 let inner = response.into_inner();
                 for d in &inner.diagnostics {
                     if d.severity == super::tfplugin5::diagnostic::Severity::Error as i32 {
                         if let Some(ref attr) = d.attribute {
-                            info!("Apply diagnostic error at {:?}: {} - {}",
-                                attribute_path_to_string_v5(attr), d.summary, d.detail);
+                            info!(
+                                "Apply diagnostic error at {:?}: {} - {}",
+                                attribute_path_to_string_v5(attr),
+                                d.summary,
+                                d.detail
+                            );
                         } else {
                             info!("Apply diagnostic error: {} - {}", d.summary, d.detail);
                         }
@@ -558,11 +613,22 @@ impl ProviderConnection {
                     provider_meta: Some(json_to_dynamic_v6(&provider_meta_val)),
                     planned_identity: None,
                 };
-                let response = tokio::time::timeout(timeout_dur, client
-                    .apply_resource_change(request))
-                    .await
-                    .map_err(|_| anyhow::anyhow!("ApplyResourceChange RPC timed out after 600s for {}", type_name))?
-                    .map_err(|e| anyhow::anyhow!("ApplyResourceChange RPC failed for {}: {}", type_name, e))?;
+                let response =
+                    tokio::time::timeout(timeout_dur, client.apply_resource_change(request))
+                        .await
+                        .map_err(|_| {
+                            anyhow::anyhow!(
+                                "ApplyResourceChange RPC timed out after 600s for {}",
+                                type_name
+                            )
+                        })?
+                        .map_err(|e| {
+                            anyhow::anyhow!(
+                                "ApplyResourceChange RPC failed for {}: {}",
+                                type_name,
+                                e
+                            )
+                        })?;
                 let inner = response.into_inner();
                 check_diagnostics_v6(&inner.diagnostics)?;
                 let new_state = inner
@@ -597,14 +663,20 @@ impl ProviderConnection {
                     client_capabilities: None,
                     current_identity: None,
                 };
-                let response = tokio::time::timeout(timeout_dur, client
-                    .read_resource(request))
+                let response = tokio::time::timeout(timeout_dur, client.read_resource(request))
                     .await
-                    .map_err(|_| anyhow::anyhow!("ReadResource RPC timed out after 30s for {}", type_name))?
-                    .map_err(|e| anyhow::anyhow!("ReadResource RPC failed for {}: {}", type_name, e))?;
+                    .map_err(|_| {
+                        anyhow::anyhow!("ReadResource RPC timed out after 30s for {}", type_name)
+                    })?
+                    .map_err(|e| {
+                        anyhow::anyhow!("ReadResource RPC failed for {}: {}", type_name, e)
+                    })?;
                 let inner = response.into_inner();
                 check_diagnostics_v5(&inner.diagnostics)?;
-                inner.new_state.map(|dv| dynamic_to_json_v5(&dv)).transpose()
+                inner
+                    .new_state
+                    .map(|dv| dynamic_to_json_v5(&dv))
+                    .transpose()
             }
             ProtocolVersion::V6 => {
                 let mut client = self.v6_client.as_ref().context("No v6 client")?.clone();
@@ -616,14 +688,20 @@ impl ProviderConnection {
                     client_capabilities: None,
                     current_identity: None,
                 };
-                let response = tokio::time::timeout(timeout_dur, client
-                    .read_resource(request))
+                let response = tokio::time::timeout(timeout_dur, client.read_resource(request))
                     .await
-                    .map_err(|_| anyhow::anyhow!("ReadResource RPC timed out after 30s for {}", type_name))?
-                    .map_err(|e| anyhow::anyhow!("ReadResource RPC failed for {}: {}", type_name, e))?;
+                    .map_err(|_| {
+                        anyhow::anyhow!("ReadResource RPC timed out after 30s for {}", type_name)
+                    })?
+                    .map_err(|e| {
+                        anyhow::anyhow!("ReadResource RPC failed for {}: {}", type_name, e)
+                    })?;
                 let inner = response.into_inner();
                 check_diagnostics_v6(&inner.diagnostics)?;
-                inner.new_state.map(|dv| dynamic_to_json_v6(&dv)).transpose()
+                inner
+                    .new_state
+                    .map(|dv| dynamic_to_json_v6(&dv))
+                    .transpose()
             }
         }
     }
@@ -644,10 +722,9 @@ impl ProviderConnection {
                     provider_meta: Some(json_to_dynamic_v5(&provider_meta_val)),
                     client_capabilities: None,
                 };
-                let response = client
-                    .read_data_source(request)
-                    .await
-                    .map_err(|e| anyhow::anyhow!("ReadDataSource RPC failed for {}: {}", type_name, e))?;
+                let response = client.read_data_source(request).await.map_err(|e| {
+                    anyhow::anyhow!("ReadDataSource RPC failed for {}: {}", type_name, e)
+                })?;
                 let inner = response.into_inner();
                 check_diagnostics_v5(&inner.diagnostics)?;
                 inner
@@ -664,10 +741,9 @@ impl ProviderConnection {
                     provider_meta: None,
                     client_capabilities: None,
                 };
-                let response = client
-                    .read_data_source(request)
-                    .await
-                    .map_err(|e| anyhow::anyhow!("ReadDataSource RPC failed for {}: {}", type_name, e))?;
+                let response = client.read_data_source(request).await.map_err(|e| {
+                    anyhow::anyhow!("ReadDataSource RPC failed for {}: {}", type_name, e)
+                })?;
                 let inner = response.into_inner();
                 check_diagnostics_v6(&inner.diagnostics)?;
                 inner
@@ -694,15 +770,17 @@ impl ProviderConnection {
                     client_capabilities: None,
                     identity: None,
                 };
-                let response = client
-                    .import_resource_state(request)
-                    .await
-                    .map_err(|e| anyhow::anyhow!("ImportResourceState RPC failed for {}: {}", type_name, e))?;
+                let response = client.import_resource_state(request).await.map_err(|e| {
+                    anyhow::anyhow!("ImportResourceState RPC failed for {}: {}", type_name, e)
+                })?;
                 let inner = response.into_inner();
                 check_diagnostics_v5(&inner.diagnostics)?;
                 let mut results = Vec::new();
                 for imported in inner.imported_resources {
-                    let state = imported.state.map(|dv| dynamic_to_json_v5(&dv)).transpose()?;
+                    let state = imported
+                        .state
+                        .map(|dv| dynamic_to_json_v5(&dv))
+                        .transpose()?;
                     results.push(ImportedResource {
                         type_name: imported.type_name,
                         state: state.unwrap_or(serde_json::Value::Null),
@@ -719,15 +797,17 @@ impl ProviderConnection {
                     client_capabilities: None,
                     identity: None,
                 };
-                let response = client
-                    .import_resource_state(request)
-                    .await
-                    .map_err(|e| anyhow::anyhow!("ImportResourceState RPC failed for {}: {}", type_name, e))?;
+                let response = client.import_resource_state(request).await.map_err(|e| {
+                    anyhow::anyhow!("ImportResourceState RPC failed for {}: {}", type_name, e)
+                })?;
                 let inner = response.into_inner();
                 check_diagnostics_v6(&inner.diagnostics)?;
                 let mut results = Vec::new();
                 for imported in inner.imported_resources {
-                    let state = imported.state.map(|dv| dynamic_to_json_v6(&dv)).transpose()?;
+                    let state = imported
+                        .state
+                        .map(|dv| dynamic_to_json_v6(&dv))
+                        .transpose()?;
                     results.push(ImportedResource {
                         type_name: imported.type_name,
                         state: state.unwrap_or(serde_json::Value::Null),
@@ -756,7 +836,13 @@ impl ProviderConnection {
                 let response = client
                     .validate_resource_type_config(request)
                     .await
-                    .map_err(|e| anyhow::anyhow!("ValidateResourceTypeConfig RPC failed for {}: {}", type_name, e))?;
+                    .map_err(|e| {
+                        anyhow::anyhow!(
+                            "ValidateResourceTypeConfig RPC failed for {}: {}",
+                            type_name,
+                            e
+                        )
+                    })?;
                 check_diagnostics_v5(&response.into_inner().diagnostics)?;
             }
             ProtocolVersion::V6 => {
@@ -769,7 +855,13 @@ impl ProviderConnection {
                 let response = client
                     .validate_resource_config(request)
                     .await
-                    .map_err(|e| anyhow::anyhow!("ValidateResourceConfig RPC failed for {}: {}", type_name, e))?;
+                    .map_err(|e| {
+                        anyhow::anyhow!(
+                            "ValidateResourceConfig RPC failed for {}: {}",
+                            type_name,
+                            e
+                        )
+                    })?;
                 check_diagnostics_v6(&response.into_inner().diagnostics)?;
             }
         }
@@ -779,9 +871,7 @@ impl ProviderConnection {
     /// Gracefully stop the provider.
     pub async fn stop(&mut self) -> Result<()> {
         if let Some(ref mut client) = self.v5_client {
-            let _ = client
-                .stop(super::tfplugin5::stop::Request {})
-                .await;
+            let _ = client.stop(super::tfplugin5::stop::Request {}).await;
         }
         if let Some(ref mut client) = self.v6_client {
             let _ = client
@@ -809,7 +899,11 @@ impl ProviderConnection {
     /// Build the provider_meta DynamicValue from the stored schema.
     /// Populates all attributes with null values.
     fn build_provider_meta(&self) -> serde_json::Value {
-        if let Some(schema) = self.schemas.as_ref().and_then(|s| s.provider_meta_schema.as_ref()) {
+        if let Some(schema) = self
+            .schemas
+            .as_ref()
+            .and_then(|s| s.provider_meta_schema.as_ref())
+        {
             if let Some(block) = schema.get("block") {
                 let mut meta = serde_json::Map::new();
                 if let Some(attrs) = block.get("attributes").and_then(|a| a.as_array()) {
@@ -928,9 +1022,7 @@ fn rmpv_to_json(val: rmpv::Value) -> serde_json::Value {
         rmpv::Value::String(s) => {
             serde_json::Value::String(s.into_str().unwrap_or_default().to_string())
         }
-        rmpv::Value::Binary(b) => {
-            serde_json::Value::String(base64_encode(&b))
-        }
+        rmpv::Value::Binary(b) => serde_json::Value::String(base64_encode(&b)),
         rmpv::Value::Array(arr) => {
             serde_json::Value::Array(arr.into_iter().map(rmpv_to_json).collect())
         }
@@ -994,8 +1086,8 @@ fn json_to_dynamic_v5(value: &serde_json::Value) -> super::tfplugin5::DynamicVal
 fn dynamic_to_json_v5(dv: &super::tfplugin5::DynamicValue) -> Result<serde_json::Value> {
     if !dv.msgpack.is_empty() {
         // Use rmpv to handle cty extension types (e.g., unknown values = ext type 0)
-        let raw: rmpv::Value = rmpv::decode::read_value(&mut &dv.msgpack[..])
-            .context("Failed to decode msgpack")?;
+        let raw: rmpv::Value =
+            rmpv::decode::read_value(&mut &dv.msgpack[..]).context("Failed to decode msgpack")?;
         Ok(rmpv_to_json(raw))
     } else if !dv.json.is_empty() {
         Ok(serde_json::from_slice(&dv.json)?)
@@ -1056,8 +1148,8 @@ fn json_to_dynamic_v6(value: &serde_json::Value) -> super::tfplugin6::DynamicVal
 
 fn dynamic_to_json_v6(dv: &super::tfplugin6::DynamicValue) -> Result<serde_json::Value> {
     if !dv.msgpack.is_empty() {
-        let raw: rmpv::Value = rmpv::decode::read_value(&mut &dv.msgpack[..])
-            .context("Failed to decode msgpack")?;
+        let raw: rmpv::Value =
+            rmpv::decode::read_value(&mut &dv.msgpack[..]).context("Failed to decode msgpack")?;
         Ok(rmpv_to_json(raw))
     } else if !dv.json.is_empty() {
         Ok(serde_json::from_slice(&dv.json)?)

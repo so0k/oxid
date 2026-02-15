@@ -108,10 +108,15 @@ pub fn build_resource_dag(
     }
 
     // Add explicit dependencies (depends_on)
-    for resource in workspace.resources.iter().chain(workspace.data_sources.iter()) {
-        let is_data = workspace.data_sources.iter().any(|d| {
-            d.resource_type == resource.resource_type && d.name == resource.name
-        });
+    for resource in workspace
+        .resources
+        .iter()
+        .chain(workspace.data_sources.iter())
+    {
+        let is_data = workspace
+            .data_sources
+            .iter()
+            .any(|d| d.resource_type == resource.resource_type && d.name == resource.name);
         let address = if is_data {
             format!("data.{}.{}", resource.resource_type, resource.name)
         } else {
@@ -170,9 +175,7 @@ pub fn build_resource_dag(
 }
 
 /// Extract resource references from a map of attributes.
-fn extract_references_from_attributes(
-    attrs: &HashMap<String, Expression>,
-) -> Vec<String> {
+fn extract_references_from_attributes(attrs: &HashMap<String, Expression>) -> Vec<String> {
     let mut refs = Vec::new();
     for expr in attrs.values() {
         refs.extend(extract_references_from_expression(expr));
@@ -351,8 +354,12 @@ fn resolve_provider_source(
 
 /// Get a topological ordering of the graph (dependencies before dependents).
 pub fn topological_order(graph: &ResourceGraph) -> Result<Vec<NodeIndex>> {
-    petgraph::algo::toposort(graph, None)
-        .map_err(|cycle| anyhow::anyhow!("Cycle detected involving {:?}", graph[cycle.node_id()].address()))
+    petgraph::algo::toposort(graph, None).map_err(|cycle| {
+        anyhow::anyhow!(
+            "Cycle detected involving {:?}",
+            graph[cycle.node_id()].address()
+        )
+    })
 }
 
 /// Get the reverse topological ordering (for destroy operations).
@@ -371,19 +378,23 @@ pub fn to_dot(graph: &ResourceGraph) -> String {
     for idx in graph.node_indices() {
         let node = &graph[idx];
         let (label, color) = match node {
-            DagNode::Resource { address, resource_type, .. } => {
-                (format!("{}\\n{}", address, resource_type), "#a8d8a8")
-            }
-            DagNode::DataSource { address, resource_type, .. } => {
-                (format!("data.{}\\n{}", address, resource_type), "#a8c8d8")
-            }
-            DagNode::Output { name, .. } => {
-                (format!("output.{}", name), "#d8d8a8")
-            }
+            DagNode::Resource {
+                address,
+                resource_type,
+                ..
+            } => (format!("{}\\n{}", address, resource_type), "#a8d8a8"),
+            DagNode::DataSource {
+                address,
+                resource_type,
+                ..
+            } => (format!("data.{}\\n{}", address, resource_type), "#a8c8d8"),
+            DagNode::Output { name, .. } => (format!("output.{}", name), "#d8d8a8"),
         };
         dot.push_str(&format!(
             "  n{} [label=\"{}\", fillcolor=\"{}\"];\n",
-            idx.index(), label, color
+            idx.index(),
+            label,
+            color
         ));
     }
 
@@ -399,7 +410,9 @@ pub fn to_dot(graph: &ResourceGraph) -> String {
             };
             dot.push_str(&format!(
                 "  n{} -> n{} [style={}];\n",
-                from.index(), to.index(), style
+                from.index(),
+                to.index(),
+                style
             ));
         }
     }

@@ -293,10 +293,7 @@ async fn cmd_init(cli: &Cli) -> Result<()> {
                 let pm = provider_manager(working_dir);
                 let mut downloaded = 0;
                 for provider in &workspace.providers {
-                    let version = provider
-                        .version_constraint
-                        .as_deref()
-                        .unwrap_or(">= 0.0.0");
+                    let version = provider.version_constraint.as_deref().unwrap_or(">= 0.0.0");
                     tracing::info!(
                         provider = %provider.source,
                         version = %version,
@@ -313,12 +310,7 @@ async fn cmd_init(cli: &Cli) -> Result<()> {
                             downloaded += 1;
                         }
                         Err(e) => {
-                            println!(
-                                "  {} {} — {}",
-                                "!".yellow(),
-                                provider.source.bold(),
-                                e
-                            );
+                            println!("  {} {} — {}", "!".yellow(), provider.source.bold(), e);
                         }
                     }
                 }
@@ -425,12 +417,7 @@ async fn cmd_apply(cli: &Cli, targets: &[String], auto_approve: bool) -> Result<
     };
     let total_succeeded = (summary.added + summary.changed + summary.destroyed) as i32;
     backend_arc
-        .complete_run(
-            &run_id,
-            status,
-            total_succeeded,
-            summary.failed as i32,
-        )
+        .complete_run(&run_id, status, total_succeeded, summary.failed as i32)
         .await?;
 
     engine.shutdown().await?;
@@ -467,11 +454,7 @@ async fn cmd_destroy(cli: &Cli, _targets: &[String], auto_approve: bool) -> Resu
     println!("\nDestruction Plan");
     println!("{}", "─".repeat(60));
     for r in &resources {
-        println!(
-            "  {} {}",
-            "-".red().bold(),
-            r.address.red()
-        );
+        println!("  {} {}", "-".red().bold(), r.address.red());
     }
     println!("{}", "─".repeat(60));
     println!(
@@ -595,11 +578,7 @@ async fn cmd_state(cli: &Cli, command: &StateCommands) -> Result<()> {
                 .context(format!("Source resource '{}' not found in state.", source))?;
 
             // Check destination doesn't exist
-            if backend
-                .get_resource(&ws.id, destination)
-                .await?
-                .is_some()
-            {
+            if backend.get_resource(&ws.id, destination).await?.is_some() {
                 bail!(
                     "Destination resource '{}' already exists in state.",
                     destination
@@ -614,10 +593,7 @@ async fn cmd_state(cli: &Cli, command: &StateCommands) -> Result<()> {
             backend.upsert_resource(&moved).await?;
             backend.delete_resource(&ws.id, source).await?;
 
-            output::formatter::print_success(&format!(
-                "Moved {} → {}",
-                source, destination
-            ));
+            output::formatter::print_success(&format!("Moved {} → {}", source, destination));
         }
     }
 
@@ -677,10 +653,7 @@ async fn cmd_import(cli: &Cli, command: &ImportCommands) -> Result<()> {
             let workspace = loader::load_workspace(Path::new(&cli.config))?;
 
             // Find the provider for this resource type
-            let provider_prefix = resource_type
-                .split('_')
-                .next()
-                .unwrap_or(resource_type);
+            let provider_prefix = resource_type.split('_').next().unwrap_or(resource_type);
             let provider_source = workspace
                 .providers
                 .iter()
@@ -699,16 +672,12 @@ async fn cmd_import(cli: &Cli, command: &ImportCommands) -> Result<()> {
             let mut resource = ResourceState::new(&ws.id, resource_type, resource_name, address);
             resource.provider_source = provider_source;
             resource.status = "created".to_string();
-            resource.attributes_json =
-                serde_json::json!({ "id": id }).to_string();
+            resource.attributes_json = serde_json::json!({ "id": id }).to_string();
 
             backend.upsert_resource(&resource).await?;
             engine.shutdown().await?;
 
-            output::formatter::print_success(&format!(
-                "Imported {} (id: {}).",
-                address, id
-            ));
+            output::formatter::print_success(&format!("Imported {} (id: {}).", address, id));
         }
     }
 
@@ -791,8 +760,7 @@ async fn cmd_graph(cli: &Cli, graph_type: &str) -> Result<()> {
     match graph_type {
         "resource" => {
             let provider_map = executor::engine::build_provider_map(&workspace);
-            let (graph, _) =
-                dag::resource_graph::build_resource_dag(&workspace, &provider_map)?;
+            let (graph, _) = dag::resource_graph::build_resource_dag(&workspace, &provider_map)?;
             let dot = dag::resource_graph::to_dot(&graph);
             println!("{}", dot);
         }
@@ -803,7 +771,10 @@ async fn cmd_graph(cli: &Cli, graph_type: &str) -> Result<()> {
             let dot = dag::visualizer::to_dot(&graph);
             println!("{}", dot);
         }
-        _ => bail!("Unknown graph type '{}'. Use 'resource' or 'module'.", graph_type),
+        _ => bail!(
+            "Unknown graph type '{}'. Use 'resource' or 'module'.",
+            graph_type
+        ),
     }
 
     Ok(())
@@ -837,10 +808,7 @@ async fn cmd_providers(cli: &Cli) -> Result<()> {
                     );
                 }
                 println!();
-                println!(
-                    "{}",
-                    "Run 'oxid init' to download providers.".dimmed()
-                );
+                println!("{}", "Run 'oxid init' to download providers.".dimmed());
             }
             _ => {
                 println!("{}", "No providers configured.".dimmed());
@@ -882,10 +850,7 @@ async fn cmd_drift(cli: &Cli, refresh: bool) -> Result<()> {
 
         // Initialize providers
         for provider in &workspace.providers {
-            let version = provider
-                .version_constraint
-                .as_deref()
-                .unwrap_or(">= 0.0.0");
+            let version = provider.version_constraint.as_deref().unwrap_or(">= 0.0.0");
             let _ = engine
                 .provider_manager()
                 .get_connection(&provider.source, version)
@@ -905,11 +870,7 @@ async fn cmd_drift(cli: &Cli, refresh: bool) -> Result<()> {
                 serde_json::from_str(&resource.attributes_json).unwrap_or_default();
             match engine
                 .provider_manager()
-                .read_resource(
-                    &resource.provider_source,
-                    &resource.resource_type,
-                    &current,
-                )
+                .read_resource(&resource.provider_source, &resource.resource_type, &current)
                 .await
             {
                 Ok(Some(refreshed_state)) => {
@@ -940,11 +901,7 @@ async fn cmd_drift(cli: &Cli, refresh: bool) -> Result<()> {
 
         engine.shutdown().await?;
         if refreshed > 0 {
-            println!(
-                "  {} Refreshed {} resource(s).\n",
-                "✓".green(),
-                refreshed
-            );
+            println!("  {} Refreshed {} resource(s).\n", "✓".green(), refreshed);
         }
     }
 
@@ -994,12 +951,7 @@ async fn cmd_drift(cli: &Cli, refresh: bool) -> Result<()> {
                 "~" => "~".yellow().to_string(),
                 _ => icon.to_string(),
             };
-            println!(
-                "  {} {} {}",
-                colored_icon,
-                addr.bold(),
-                detail.dimmed()
-            );
+            println!("  {} {} {}", colored_icon, addr.bold(), detail.dimmed());
         }
         println!("{}", "─".repeat(60));
         println!();
@@ -1012,11 +964,7 @@ async fn cmd_validate(cli: &Cli) -> Result<()> {
     let config_path = Path::new(&cli.config);
     let mode = loader::detect_mode(config_path);
 
-    println!(
-        "  {} Config format: {:?}",
-        "→".blue(),
-        mode
-    );
+    println!("  {} Config format: {:?}", "→".blue(), mode);
 
     let workspace = loader::load_workspace(config_path)?;
 

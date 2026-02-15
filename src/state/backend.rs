@@ -138,11 +138,7 @@ pub trait StateBackend: Send + Sync {
     ) -> Result<()>;
 
     /// Record a per-resource result within a run.
-    async fn record_resource_result(
-        &self,
-        run_id: &str,
-        result: &ResourceResult,
-    ) -> Result<()>;
+    async fn record_resource_result(&self, run_id: &str, result: &ResourceResult) -> Result<()>;
 
     /// Get the latest run for a workspace.
     async fn get_latest_run(&self, workspace_id: &str) -> Result<Option<RunRecord>>;
@@ -159,11 +155,7 @@ pub trait StateBackend: Send + Sync {
     // ─── Import ─────────────────────────────────────────────────────────────
 
     /// Import resources from a terraform .tfstate JSON string.
-    async fn import_tfstate(
-        &self,
-        workspace_id: &str,
-        state_json: &str,
-    ) -> Result<ImportResult>;
+    async fn import_tfstate(&self, workspace_id: &str, state_json: &str) -> Result<ImportResult>;
 
     // ─── Providers ──────────────────────────────────────────────────────────
 
@@ -176,8 +168,5 @@ pub trait StateBackend: Send + Sync {
     ) -> Result<String>;
 
     /// List providers for a workspace.
-    async fn list_providers(
-        &self,
-        workspace_id: &str,
-    ) -> Result<Vec<(String, String, String)>>; // (id, source, version)
+    async fn list_providers(&self, workspace_id: &str) -> Result<Vec<(String, String, String)>>; // (id, source, version)
 }
