@@ -1,6 +1,15 @@
 use std::path::Path;
 use std::sync::Arc;
 
+/// Reset SIGPIPE to default behavior so piping (e.g. `oxid graph | dot`) exits cleanly
+/// instead of panicking on broken pipe.
+#[cfg(unix)]
+fn reset_sigpipe() {
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+}
+
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
@@ -202,6 +211,9 @@ const DEFAULT_WORKSPACE: &str = "default";
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    #[cfg(unix)]
+    reset_sigpipe();
+
     let cli = Cli::parse();
 
     let filter = if cli.verbose {

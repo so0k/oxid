@@ -98,42 +98,59 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
+      - name: Fetch full history for changelog
+        run: git fetch --prune --unshallow --tags 2>/dev/null || true
+
+      - name: Generate release notes
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${VERSION}$" | head -1)
+
+          cat > /tmp/release_notes.md << 'HEADER'
+          ## What's Changed
+
+          HEADER
+
+          if [ -n "$PREV_TAG" ]; then
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges >> /tmp/release_notes.md
+            echo "" >> /tmp/release_notes.md
+            echo "" >> /tmp/release_notes.md
+            echo "**Full Changelog**: https://github.com/ops0-ai/oxid/compare/${PREV_TAG}...${VERSION}" >> /tmp/release_notes.md
+          else
+            git log --pretty=format:"- %s (%h)" --no-merges >> /tmp/release_notes.md
+          fi
+
+          cat >> /tmp/release_notes.md << EOF
+
+          ---
+
+          ## Install
+
+          \`\`\`bash
+          curl -fsSL https://raw.githubusercontent.com/ops0-ai/oxid/main/install.sh | bash
+          \`\`\`
+
+          Or download manually:
+
+          | Platform | Download |
+          |----------|----------|
+          | Linux (x86_64) | [oxid-linux-amd64.tar.gz](https://github.com/ops0-ai/oxid/releases/download/${VERSION}/oxid-linux-amd64.tar.gz) |
+          | Linux (ARM64) | [oxid-linux-arm64.tar.gz](https://github.com/ops0-ai/oxid/releases/download/${VERSION}/oxid-linux-arm64.tar.gz) |
+          | macOS (Apple Silicon) | [oxid-darwin-arm64.tar.gz](https://github.com/ops0-ai/oxid/releases/download/${VERSION}/oxid-darwin-arm64.tar.gz) |
+          | macOS (Intel) | [oxid-darwin-amd64.tar.gz](https://github.com/ops0-ai/oxid/releases/download/${VERSION}/oxid-darwin-amd64.tar.gz) |
+
+          ### Verify
+
+          \`\`\`bash
+          oxid --version
+          \`\`\`
+          EOF
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "Oxid ${{ steps.version.outputs.VERSION }}"
-          body: |
-            ## Oxid ${{ steps.version.outputs.VERSION }}
-
-            Standalone infrastructure-as-code engine. OSS alternative to Terraform/OpenTofu.
-
-            ### Installation
-
-            Download the binary for your platform, extract, and add to your PATH:
-
-            ```bash
-            # macOS (Apple Silicon)
-            tar xzf oxid-darwin-arm64.tar.gz
-            chmod +x oxid && sudo mv oxid /usr/local/bin/
-
-            # macOS (Intel)
-            tar xzf oxid-darwin-amd64.tar.gz
-            chmod +x oxid && sudo mv oxid /usr/local/bin/
-
-            # Linux (x86_64)
-            tar xzf oxid-linux-amd64.tar.gz
-            chmod +x oxid && sudo mv oxid /usr/local/bin/
-
-            # Linux (ARM64)
-            tar xzf oxid-linux-arm64.tar.gz
-            chmod +x oxid && sudo mv oxid /usr/local/bin/
-            ```
-
-            ### Verify
-
-            ```bash
-            oxid --version
-            ```
+          body_path: /tmp/release_notes.md
           draft: false
           prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
           files: |

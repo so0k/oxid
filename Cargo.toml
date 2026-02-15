@@ -54,6 +54,9 @@ prost-types = "0.13"
 tower = "0.4"
 hyper-util = { version = "0.1", features = ["tokio"] }
 
+# Unix signal handling
+libc = "0.2"
+
 # Misc
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }

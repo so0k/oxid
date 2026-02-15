@@ -1735,7 +1735,7 @@ dependencies = [
 
 [[package]]
 name = "oxid"
-version = "0.2.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1750,6 +1750,7 @@ dependencies = [
  "hex",
  "hyper-util",
  "indicatif",
+ "libc",
  "petgraph",
  "prost",
  "prost-build",

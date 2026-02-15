@@ -33,7 +33,33 @@ Oxid parses `.tf` (HCL) files natively and communicates directly with Terraform 
 ### Install
 
 ```bash
-# From source
+# One-line install (Linux & macOS)
+curl -fsSL https://raw.githubusercontent.com/ops0-ai/oxid/main/install.sh | bash
+```
+
+Or download a specific release manually:
+
+```bash
+# macOS (Apple Silicon)
+curl -fsSL https://github.com/ops0-ai/oxid/releases/latest/download/oxid-darwin-arm64.tar.gz | tar xz
+sudo mv oxid /usr/local/bin/
+
+# macOS (Intel)
+curl -fsSL https://github.com/ops0-ai/oxid/releases/latest/download/oxid-darwin-amd64.tar.gz | tar xz
+sudo mv oxid /usr/local/bin/
+
+# Linux (x86_64)
+curl -fsSL https://github.com/ops0-ai/oxid/releases/latest/download/oxid-linux-amd64.tar.gz | tar xz
+sudo mv oxid /usr/local/bin/
+
+# Linux (ARM64)
+curl -fsSL https://github.com/ops0-ai/oxid/releases/latest/download/oxid-linux-arm64.tar.gz | tar xz
+sudo mv oxid /usr/local/bin/
+```
+
+From source:
+
+```bash
 git clone https://github.com/ops0-ai/oxid.git
 cd oxid
 cargo build --release
