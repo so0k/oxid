@@ -21,6 +21,9 @@ infra/
 # Test directories
 test_minimal/
 
+# Website
+oxid-infrastructure-as-code/
+
 # Claude Code
 .claude/
 claude-code-prompt.md
