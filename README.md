@@ -16,7 +16,7 @@ Oxid parses `.tf` (HCL) files natively and communicates directly with Terraform 
 | **Config** | HCL only | HCL + YAML |
 | **Provider protocol** | Wraps binary / shared lib | Direct gRPC (tfplugin5/6) |
 | **Queryable state** | `terraform show` | Full SQL: `oxid query "SELECT * FROM resources"` |
-| **License** | BSL / MPL | AGPL-3.0 |
+| **License** | BSL / MPL | Apache-2.0 |
 
 ## Features
 
@@ -210,7 +210,7 @@ Oxid is in beta and help is appreciated! Here's how you can contribute:
 
 ## License
 
-AGPL-3.0. See [LICENSE](LICENSE) for details.
+Apache-2.0. See [LICENSE](LICENSE) for details.
 
 ---
 
