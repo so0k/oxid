@@ -1,5 +1,7 @@
 # Oxid
 
+> **Beta** — Oxid is under active development. It works end-to-end with real AWS providers, but has not been battle-tested in production yet. Use caution for production deployments and please report any issues you find. Community testing and contributions are very welcome!
+
 A standalone infrastructure-as-code engine. Open-source alternative to Terraform.
 
 Oxid parses `.tf` (HCL) files natively and communicates directly with Terraform providers via gRPC — no `terraform` or `tofu` binary required.
@@ -196,6 +198,15 @@ Apply complete! Resources: 2 added, 0 changed, 0 destroyed. Total time: 4s.
 # Prerequisites: Rust 1.75+, protoc (protobuf compiler)
 cargo build --release
 ```
+
+## Contributing
+
+Oxid is in beta and help is appreciated! Here's how you can contribute:
+
+- **Test with your `.tf` configs** — Try `oxid plan` against your existing Terraform projects and report what works/breaks
+- **Report issues** — File bugs at [github.com/ops0-ai/oxid/issues](https://github.com/ops0-ai/oxid/issues)
+- **Provider coverage** — Test with different providers (GCP, Azure, Cloudflare, etc.) beyond AWS
+- **Code contributions** — PRs welcome. See the architecture section above for how things fit together
 
 ## License
 
