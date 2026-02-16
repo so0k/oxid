@@ -476,7 +476,7 @@ impl ResourceAddress {
         self
     }
 
-    pub fn to_string(&self) -> String {
+    pub fn format_address(&self) -> String {
         let mut parts = Vec::new();
         for m in &self.module_path {
             parts.push(format!("module.{}", m));
@@ -531,6 +531,6 @@ impl ResourceAddress {
 
 impl fmt::Display for ResourceAddress {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_string())
+        write!(f, "{}", self.format_address())
     }
 }

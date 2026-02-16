@@ -165,23 +165,12 @@ pub mod run_status {
 
 // ─── Query Results ──────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ResourceFilter {
     pub resource_type: Option<String>,
     pub module_path: Option<String>,
     pub status: Option<String>,
     pub address_pattern: Option<String>,
-}
-
-impl Default for ResourceFilter {
-    fn default() -> Self {
-        Self {
-            resource_type: None,
-            module_path: None,
-            status: None,
-            address_pattern: None,
-        }
-    }
 }
 
 // ─── Import ─────────────────────────────────────────────────────────────────

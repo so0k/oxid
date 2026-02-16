@@ -364,7 +364,7 @@ pub fn print_resource_list(resources: &[ResourceState]) {
         let provider_short = resource
             .provider_source
             .split('/')
-            .last()
+            .next_back()
             .unwrap_or(&resource.provider_source);
 
         println!(

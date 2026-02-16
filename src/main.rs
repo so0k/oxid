@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::path::Path;
 use std::sync::Arc;
 
@@ -688,7 +690,7 @@ async fn cmd_query(cli: &Cli, sql: &str, format: &str) -> Result<()> {
     let backend = open_backend(&cli.working_dir)?;
     backend.initialize().await?;
 
-    let fmt = QueryFormat::from_str(format);
+    let fmt = QueryFormat::parse(format);
     let result = execute_query(&backend, sql, fmt).await?;
     println!("{}", result);
     Ok(())

@@ -11,7 +11,7 @@ pub enum QueryFormat {
 }
 
 impl QueryFormat {
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "json" => QueryFormat::Json,
             "csv" => QueryFormat::Csv,

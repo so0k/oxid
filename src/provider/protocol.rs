@@ -971,11 +971,11 @@ pub struct ImportedResource {
 
 #[derive(Debug)]
 struct Handshake {
-    core_protocol: u32,
+    _core_protocol: u32,
     app_protocol: u32,
     network_type: String,
     address: String,
-    protocol: String,
+    _protocol: String,
 }
 
 fn parse_handshake(line: &str) -> Result<Handshake> {
@@ -988,11 +988,11 @@ fn parse_handshake(line: &str) -> Result<Handshake> {
     }
 
     Ok(Handshake {
-        core_protocol: parts[0].parse().context("Invalid core protocol version")?,
+        _core_protocol: parts[0].parse().context("Invalid core protocol version")?,
         app_protocol: parts[1].parse().context("Invalid app protocol version")?,
         network_type: parts[2].to_string(),
         address: parts[3].to_string(),
-        protocol: parts[4].to_string(),
+        _protocol: parts[4].to_string(),
     })
 }
 
@@ -1037,13 +1037,10 @@ fn rmpv_to_json(val: rmpv::Value) -> serde_json::Value {
             }
             serde_json::Value::Object(map)
         }
-        rmpv::Value::Ext(type_id, _data) => {
+        rmpv::Value::Ext(_type_id, _data) => {
             // cty extension type 0 = unknown value (will be computed at apply time)
-            if type_id == 0 {
-                serde_json::Value::Null // Treat unknown as null for planning purposes
-            } else {
-                serde_json::Value::Null
-            }
+            // All extension types treated as null for planning purposes
+            serde_json::Value::Null
         }
     }
 }

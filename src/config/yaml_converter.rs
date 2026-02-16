@@ -64,7 +64,7 @@ fn yaml_value_to_expression(value: &serde_yaml::Value) -> Expression {
             }
         }
         serde_yaml::Value::Sequence(seq) => {
-            let items: Vec<Value> = seq.iter().map(|v| yaml_value_to_value(v)).collect();
+            let items: Vec<Value> = seq.iter().map(yaml_value_to_value).collect();
             Expression::Literal(Value::List(items))
         }
         serde_yaml::Value::Mapping(map) => {
@@ -97,7 +97,7 @@ fn yaml_value_to_value(value: &serde_yaml::Value) -> Value {
         }
         serde_yaml::Value::String(s) => Value::String(s.clone()),
         serde_yaml::Value::Sequence(seq) => {
-            let items: Vec<Value> = seq.iter().map(|v| yaml_value_to_value(v)).collect();
+            let items: Vec<Value> = seq.iter().map(yaml_value_to_value).collect();
             Value::List(items)
         }
         serde_yaml::Value::Mapping(map) => {

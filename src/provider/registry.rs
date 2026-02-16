@@ -27,10 +27,12 @@ struct VersionsResponse {
 struct VersionEntry {
     version: String,
     protocols: Vec<String>,
+    #[allow(dead_code)]
     platforms: Vec<PlatformEntry>,
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct PlatformEntry {
     os: String,
     arch: String,
@@ -55,12 +57,18 @@ pub struct RegistryClient {
     base_url: String,
 }
 
-impl RegistryClient {
-    pub fn new() -> Self {
+impl Default for RegistryClient {
+    fn default() -> Self {
         Self {
             http: reqwest::Client::new(),
             base_url: "https://registry.terraform.io".to_string(),
         }
+    }
+}
+
+impl RegistryClient {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn with_base_url(base_url: &str) -> Self {
@@ -161,8 +169,8 @@ impl RegistryClient {
                         return false;
                     }
                     // Must match all but last constraint part, and last must be >=
-                    for i in 0..parts.len().saturating_sub(1) {
-                        if v_parts.get(i) != Some(&parts[i]) {
+                    for (i, part) in parts[..parts.len().saturating_sub(1)].iter().enumerate() {
+                        if v_parts.get(i) != Some(part) {
                             return false;
                         }
                     }

@@ -27,10 +27,10 @@ hcl-rs = "0.18"
 petgraph = "0.6"
 
 # State storage - SQLite
-rusqlite = { version = "0.31", features = ["bundled"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
 
 # State storage - PostgreSQL (feature-gated)
-sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "json", "chrono", "uuid"], optional = true }
+sqlx = { version = "0.8.1", features = ["runtime-tokio", "postgres", "json", "chrono", "uuid"], optional = true }
 
 # Concurrent data structures
 dashmap = "6"

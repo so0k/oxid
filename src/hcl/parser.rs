@@ -475,7 +475,7 @@ pub fn hcl_expr_to_expression(expr: &hcl::Expression) -> Expression {
             }
         }
         hcl::Expression::Array(arr) => {
-            let items: Vec<Value> = arr.iter().filter_map(|e| expr_to_value(e)).collect();
+            let items: Vec<Value> = arr.iter().filter_map(expr_to_value).collect();
             Expression::Literal(Value::List(items))
         }
         hcl::Expression::Object(obj) => {
@@ -493,7 +493,7 @@ pub fn hcl_expr_to_expression(expr: &hcl::Expression) -> Expression {
             parse_template_string(&s)
         }
         hcl::Expression::Variable(var) => {
-            let parts: Vec<String> = var.to_string().split('.').map(|s| s.to_string()).collect();
+            let parts: Vec<String> = var.as_str().split('.').map(|s| s.to_string()).collect();
             Expression::Reference(parts)
         }
         hcl::Expression::Traversal(traversal) => {
@@ -526,11 +526,7 @@ pub fn hcl_expr_to_expression(expr: &hcl::Expression) -> Expression {
         }
         hcl::Expression::FuncCall(func_call) => {
             let name = func_call.name.to_string();
-            let args: Vec<Expression> = func_call
-                .args
-                .iter()
-                .map(|a| hcl_expr_to_expression(a))
-                .collect();
+            let args: Vec<Expression> = func_call.args.iter().map(hcl_expr_to_expression).collect();
             Expression::FunctionCall { name, args }
         }
         hcl::Expression::Conditional(cond) => Expression::Conditional {
@@ -676,7 +672,7 @@ fn expr_to_bool(expr: &hcl::Expression) -> bool {
 
 fn expr_to_string_list(expr: &hcl::Expression) -> Vec<String> {
     match expr {
-        hcl::Expression::Array(arr) => arr.iter().map(|e| expr_to_string(e)).collect(),
+        hcl::Expression::Array(arr) => arr.iter().map(expr_to_string).collect(),
         _ => vec![],
     }
 }
@@ -688,15 +684,13 @@ fn expr_to_value(expr: &hcl::Expression) -> Option<Value> {
         hcl::Expression::Number(n) => {
             if let Some(i) = n.as_i64() {
                 Some(Value::Int(i))
-            } else if let Some(f) = n.as_f64() {
-                Some(Value::Float(f))
             } else {
-                None
+                n.as_f64().map(Value::Float)
             }
         }
         hcl::Expression::String(s) => Some(Value::String(s.clone())),
         hcl::Expression::Array(arr) => {
-            let items: Vec<Value> = arr.iter().filter_map(|e| expr_to_value(e)).collect();
+            let items: Vec<Value> = arr.iter().filter_map(expr_to_value).collect();
             Some(Value::List(items))
         }
         hcl::Expression::Object(obj) => {

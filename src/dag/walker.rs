@@ -327,6 +327,7 @@ impl DagWalker {
 }
 
 /// Spawn execution of a single node.
+#[allow(clippy::too_many_arguments)]
 fn spawn_node(
     idx: NodeIndex,
     graph: &ResourceGraph,

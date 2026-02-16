@@ -4,7 +4,6 @@
 ///
 /// Compatible with both SQLite and PostgreSQL (using TEXT for timestamps
 /// and TEXT for JSON instead of JSONB to keep dialect-agnostic).
-
 pub const SCHEMA_VERSION: i32 = 1;
 
 pub const CREATE_TABLES_SQL: &str = "

@@ -822,6 +822,7 @@ struct TfInstance {
     #[serde(default)]
     sensitive_attributes: Vec<String>,
     #[serde(default)]
+    #[allow(dead_code)]
     dependencies: Vec<String>,
 }
 

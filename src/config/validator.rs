@@ -87,14 +87,14 @@ fn validate_variable_references(config: &YamlConfig) -> Result<()> {
         .collect();
     let module_names: HashSet<&str> = config.project.modules.keys().map(|s| s.as_str()).collect();
 
+    let var_re = regex::Regex::new(r"\$\{var\.([^}]+)\}").unwrap();
+    let mod_re = regex::Regex::new(r"\$\{module\.([^.}]+)\.([^}]+)\}").unwrap();
+
     for (mod_name, module) in &config.project.modules {
         for (var_key, var_value) in &module.variables {
             let value_str = yaml_value_to_string(var_value);
             // Check ${var.*} references
-            for cap in regex::Regex::new(r"\$\{var\.([^}]+)\}")
-                .unwrap()
-                .captures_iter(&value_str)
-            {
+            for cap in var_re.captures_iter(&value_str) {
                 let ref_name = &cap[1];
                 if !var_names.contains(ref_name) {
                     bail!(
@@ -106,10 +106,7 @@ fn validate_variable_references(config: &YamlConfig) -> Result<()> {
                 }
             }
             // Check ${module.*.*} references
-            for cap in regex::Regex::new(r"\$\{module\.([^.}]+)\.([^}]+)\}")
-                .unwrap()
-                .captures_iter(&value_str)
-            {
+            for cap in mod_re.captures_iter(&value_str) {
                 let ref_module = &cap[1];
                 if !module_names.contains(ref_module) {
                     bail!(
