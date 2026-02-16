@@ -24,11 +24,7 @@ pub fn print_validation_errors(errors: &[ValidationError]) {
             "Missing resource instance key".bold()
         );
         eprintln!();
-        eprintln!(
-            "  {} {}",
-            "on".dimmed(),
-            err.source.yellow()
-        );
+        eprintln!("  {} {}", "on".dimmed(), err.source.yellow());
         eprintln!();
         eprintln!(
             "  Because {} has {} set, its attributes must be",
@@ -37,7 +33,10 @@ pub fn print_validation_errors(errors: &[ValidationError]) {
         );
         eprintln!("  accessed on specific instances.");
         eprintln!();
-        eprintln!("  {} to correlate with indices of a referring resource:", "For example,".dimmed());
+        eprintln!(
+            "  {} to correlate with indices of a referring resource:",
+            "For example,".dimmed()
+        );
         eprintln!(
             "      {}",
             format!("{}[count.index].{}", err.ref_address, err.attr_accessed).green()
@@ -119,10 +118,7 @@ pub fn validate_count_references(workspace: &WorkspaceConfig) -> Vec<ValidationE
 
     // Check data source attributes
     for data_source in &workspace.data_sources {
-        let source_addr = format!(
-            "data.{}.{}",
-            data_source.resource_type, data_source.name
-        );
+        let source_addr = format!("data.{}.{}", data_source.resource_type, data_source.name);
         for (attr_name, expr) in &data_source.attributes {
             check_expression(
                 expr,
@@ -243,29 +239,17 @@ fn check_reference(
     }
 
     match parts[0].as_str() {
-        "var" | "local" | "each" | "count" | "path" | "terraform" | "self" | "module" => return,
+        "var" | "local" | "each" | "count" | "path" | "terraform" | "self" | "module" => (),
         "data" if parts.len() >= 4 => {
             let ref_address = format!("data.{}.{}", parts[1], parts[2]);
             if multi_instance.contains(&ref_address) && !parts[3].starts_with('[') {
-                push_missing_key_error(
-                    errors,
-                    source_addr,
-                    attr_name,
-                    &ref_address,
-                    &parts[3],
-                );
+                push_missing_key_error(errors, source_addr, attr_name, &ref_address, &parts[3]);
             }
         }
         _ => {
             let ref_address = format!("{}.{}", parts[0], parts[1]);
             if multi_instance.contains(&ref_address) && !parts[2].starts_with('[') {
-                push_missing_key_error(
-                    errors,
-                    source_addr,
-                    attr_name,
-                    &ref_address,
-                    &parts[2],
-                );
+                push_missing_key_error(errors, source_addr, attr_name, &ref_address, &parts[2]);
             }
         }
     }
@@ -407,9 +391,8 @@ mod tests {
     #[test]
     fn interpolated_bare_reference_errors() {
         let mut ws = make_workspace_with_count();
-        ws.outputs[0].value = Expression::Literal(Value::String(
-            "${aws_instance.main.id}".to_string(),
-        ));
+        ws.outputs[0].value =
+            Expression::Literal(Value::String("${aws_instance.main.id}".to_string()));
         let errors = validate_count_references(&ws);
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].ref_address, "aws_instance.main");
@@ -464,10 +447,7 @@ mod tests {
             }],
             outputs: vec![OutputConfig {
                 name: "region".to_string(),
-                value: Expression::Reference(vec![
-                    "var".to_string(),
-                    "aws_region".to_string(),
-                ]),
+                value: Expression::Reference(vec!["var".to_string(), "aws_region".to_string()]),
                 description: None,
                 sensitive: false,
                 depends_on: vec![],

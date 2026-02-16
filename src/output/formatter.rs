@@ -294,14 +294,12 @@ fn print_resource_change(change: &PlannedChange) {
 fn format_plan_value(
     value: &serde_json::Value,
     is_user_set: bool,
-    prior_value: Option<&serde_json::Value>,
+    _prior_value: Option<&serde_json::Value>,
 ) -> String {
     if is_user_set {
         format_value_short(value)
     } else if value.is_null() {
         "(known after apply)".dimmed().to_string()
-    } else if prior_value.is_none() {
-        format_value_short(value)
     } else {
         format_value_short(value)
     }
@@ -437,7 +435,10 @@ pub fn print_plan_json(plan: &PlanSummary) {
         }
     });
 
-    println!("{}", serde_json::to_string_pretty(&json).unwrap_or_default());
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&json).unwrap_or_default()
+    );
 }
 
 /// Print a list of resources from state.
