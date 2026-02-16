@@ -243,7 +243,34 @@ fn parse_resource_body(
                     }
                     _ => {
                         let nested = parse_nested_block_as_attribute(inner_block);
-                        attributes.insert(ident.to_string(), nested);
+                        // If this block name already exists, collect into an array
+                        // (e.g. repeated `filter` blocks in data sources)
+                        if let Some(existing) = attributes.remove(ident) {
+                            let arr = match existing {
+                                Expression::Literal(Value::List(mut items)) => {
+                                    if let Expression::Literal(val) = nested {
+                                        items.push(val);
+                                    }
+                                    items
+                                }
+                                _ => {
+                                    let mut items = Vec::new();
+                                    if let Expression::Literal(val) = existing {
+                                        items.push(val);
+                                    }
+                                    if let Expression::Literal(val) = nested {
+                                        items.push(val);
+                                    }
+                                    items
+                                }
+                            };
+                            attributes.insert(
+                                ident.to_string(),
+                                Expression::Literal(Value::List(arr)),
+                            );
+                        } else {
+                            attributes.insert(ident.to_string(), nested);
+                        }
                     }
                 }
             }

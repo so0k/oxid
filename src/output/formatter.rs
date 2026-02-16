@@ -88,8 +88,21 @@ pub fn print_resource_plan(plan: &PlanSummary, targets: &[String]) {
     // Print output changes
     if !plan.outputs.is_empty() {
         println!("Changes to Outputs:");
+        let name_width = plan
+            .outputs
+            .iter()
+            .map(|o| o.name.len())
+            .max()
+            .unwrap_or(10);
+
         for output in &plan.outputs {
-            let line = format!("  + {} = (known after apply)", output.name);
+            let line = format!(
+                "  {} {:<width$} = {}",
+                "+",
+                output.name,
+                "(known after apply)",
+                width = name_width,
+            );
             println!("{}", line.green());
         }
         println!();
@@ -190,7 +203,7 @@ fn print_resource_change(change: &PlannedChange) {
             });
 
             // Find max key length for alignment
-            let max_key_len = keys.iter().map(|k| k.len()).max().unwrap_or(0).min(35);
+            let max_key_len = keys.iter().map(|k| k.len()).max().unwrap_or(0).min(50);
 
             for key in &keys {
                 let value = &obj[key.as_str()];
@@ -247,7 +260,7 @@ fn print_resource_change(change: &PlannedChange) {
         // No planned state yet — show user config
         if let Some(ref config) = change.user_config {
             if let Some(obj) = config.as_object() {
-                let max_key_len = obj.keys().map(|k| k.len()).max().unwrap_or(0).min(35);
+                let max_key_len = obj.keys().map(|k| k.len()).max().unwrap_or(0).min(50);
                 for (key, value) in obj {
                     if value.is_null() {
                         continue;
@@ -288,7 +301,6 @@ fn format_plan_value(
     } else if value.is_null() {
         "(known after apply)".dimmed().to_string()
     } else if prior_value.is_none() {
-        // New attribute with a provider-computed value
         format_value_short(value)
     } else {
         format_value_short(value)
@@ -319,17 +331,113 @@ fn format_value_short(value: &serde_json::Value) -> String {
         serde_json::Value::Object(obj) => {
             if obj.is_empty() {
                 "{}".to_string()
-            } else if obj.len() <= 4 {
-                let items: Vec<String> = obj
-                    .iter()
-                    .map(|(k, v)| format!("{} = {}", k, format_value_short(v)))
-                    .collect();
-                format!("{{ {} }}", items.join(", "))
             } else {
-                format!("{{...{} keys}}", obj.len())
+                // Multi-line block style like Terraform
+                let mut lines = Vec::new();
+                let max_key_len = obj.keys().map(|k| k.len()).max().unwrap_or(0);
+                lines.push("{".to_string());
+                for (k, v) in obj {
+                    lines.push(format!(
+                        "          + {:<width$} = {}",
+                        format!("\"{}\"", k),
+                        format_value_short(v),
+                        width = max_key_len + 2,
+                    ));
+                }
+                lines.push("        }".to_string());
+                lines.join("\n")
             }
         }
     }
+}
+
+/// Format an output value for display after apply, matching Terraform's style.
+pub fn format_output_value(value: &serde_json::Value, indent: usize) -> String {
+    let pad = "  ".repeat(indent);
+    match value {
+        serde_json::Value::String(s) => format!("\"{}\"", s),
+        serde_json::Value::Null => "null".to_string(),
+        serde_json::Value::Bool(b) => b.to_string(),
+        serde_json::Value::Number(n) => n.to_string(),
+        serde_json::Value::Array(arr) => {
+            if arr.is_empty() {
+                return "[]".to_string();
+            }
+            let mut lines = vec!["[".to_string()];
+            for item in arr {
+                lines.push(format!(
+                    "{}  {},",
+                    pad,
+                    format_output_value(item, indent + 1)
+                ));
+            }
+            lines.push(format!("{}]", pad));
+            lines.join("\n")
+        }
+        serde_json::Value::Object(obj) => {
+            if obj.is_empty() {
+                return "{}".to_string();
+            }
+            let mut lines = vec!["{".to_string()];
+            let key_width = obj.keys().map(|k| k.len()).max().unwrap_or(0);
+            for (k, v) in obj {
+                lines.push(format!(
+                    "{}  {:<width$} = {}",
+                    pad,
+                    format!("\"{}\"", k),
+                    format_output_value(v, indent + 1),
+                    width = key_width + 2,
+                ));
+            }
+            lines.push(format!("{}}}", pad));
+            lines.join("\n")
+        }
+    }
+}
+
+/// Print the plan as machine-parseable JSON.
+pub fn print_plan_json(plan: &PlanSummary) {
+    let changes: Vec<serde_json::Value> = plan
+        .changes
+        .iter()
+        .map(|c| {
+            serde_json::json!({
+                "address": c.address,
+                "action": format!("{}", c.action),
+                "resource_type": c.resource_type,
+                "provider": c.provider_source,
+                "planned_state": c.planned_state,
+                "prior_state": c.prior_state,
+                "user_config": c.user_config,
+                "requires_replace": c.requires_replace,
+            })
+        })
+        .collect();
+
+    let outputs: Vec<serde_json::Value> = plan
+        .outputs
+        .iter()
+        .map(|o| {
+            serde_json::json!({
+                "name": o.name,
+                "action": format!("{}", o.action),
+                "value_known": o.value_known,
+            })
+        })
+        .collect();
+
+    let json = serde_json::json!({
+        "changes": changes,
+        "outputs": outputs,
+        "summary": {
+            "add": plan.creates,
+            "change": plan.updates,
+            "destroy": plan.deletes,
+            "replace": plan.replaces,
+        }
+    });
+
+    println!("{}", serde_json::to_string_pretty(&json).unwrap_or_default());
 }
 
 /// Print a list of resources from state.

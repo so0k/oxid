@@ -68,6 +68,10 @@ enum Commands {
         /// Plan only specific resource address(es)
         #[arg(short, long)]
         target: Vec<String>,
+
+        /// Output as JSON (machine-parseable)
+        #[arg(long)]
+        json: bool,
     },
 
     /// Apply infrastructure changes with resource-level parallelism
@@ -230,7 +234,7 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Commands::Init => cmd_init(&cli).await,
-        Commands::Plan { ref target } => cmd_plan(&cli, target).await,
+        Commands::Plan { ref target, json } => cmd_plan(&cli, target, json).await,
         Commands::Apply {
             ref target,
             auto_approve,
@@ -335,8 +339,16 @@ async fn cmd_init(cli: &Cli) -> Result<()> {
     Ok(())
 }
 
-async fn cmd_plan(cli: &Cli, targets: &[String]) -> Result<()> {
+async fn cmd_plan(cli: &Cli, targets: &[String], json: bool) -> Result<()> {
     let workspace = loader::load_workspace(Path::new(&cli.config))?;
+
+    // Validate count/for_each references before planning
+    let validation_errors = dag::validation::validate_count_references(&workspace);
+    if !validation_errors.is_empty() {
+        dag::validation::print_validation_errors(&validation_errors);
+        bail!("Validation failed.");
+    }
+
     let backend = open_backend(&cli.working_dir)?;
     backend.initialize().await?;
 
@@ -351,12 +363,24 @@ async fn cmd_plan(cli: &Cli, targets: &[String]) -> Result<()> {
     let plan = engine.plan(&workspace, &backend, &ws.id).await?;
     engine.shutdown().await?;
 
-    output::formatter::print_resource_plan(&plan, targets);
+    if json {
+        output::formatter::print_plan_json(&plan);
+    } else {
+        output::formatter::print_resource_plan(&plan, targets);
+    }
     Ok(())
 }
 
 async fn cmd_apply(cli: &Cli, targets: &[String], auto_approve: bool) -> Result<()> {
     let workspace = loader::load_workspace(Path::new(&cli.config))?;
+
+    // Validate count/for_each references before applying
+    let validation_errors = dag::validation::validate_count_references(&workspace);
+    if !validation_errors.is_empty() {
+        dag::validation::print_validation_errors(&validation_errors);
+        bail!("Validation failed.");
+    }
+
     let backend = open_backend(&cli.working_dir)?;
     backend.initialize().await?;
 
@@ -427,6 +451,45 @@ async fn cmd_apply(cli: &Cli, targets: &[String], auto_approve: bool) -> Result<
     // Print summary
     println!();
     println!("{}", summary);
+
+    // Evaluate and print outputs
+    if !workspace.outputs.is_empty() && summary.failed == 0 {
+        // Load all resource states from the backend into a DashMap for expression evaluation
+        let resource_states: Arc<dashmap::DashMap<String, serde_json::Value>> =
+            Arc::new(dashmap::DashMap::new());
+        let all_resources = backend_arc
+            .list_resources(&ws.id, &crate::state::models::ResourceFilter::default())
+            .await?;
+        for r in &all_resources {
+            if let Ok(attrs) = serde_json::from_str::<serde_json::Value>(&r.attributes_json) {
+                resource_states.insert(r.address.clone(), attrs);
+            }
+        }
+
+        let var_defaults = executor::engine::build_variable_defaults(&workspace);
+        let eval_ctx =
+            executor::engine::EvalContext::with_states(var_defaults, Arc::clone(&resource_states));
+
+        println!();
+        println!("{}:", "Outputs".bold());
+        println!();
+        let name_width = workspace
+            .outputs
+            .iter()
+            .map(|o| o.name.len())
+            .max()
+            .unwrap_or(10);
+
+        for output in &workspace.outputs {
+            let value = executor::engine::eval_expression(&output.value, &eval_ctx);
+            let display = if output.sensitive {
+                "<sensitive>".to_string()
+            } else {
+                output::formatter::format_output_value(&value, 0)
+            };
+            println!("{:<width$} = {}", output.name, display, width = name_width);
+        }
+    }
 
     Ok(())
 }
@@ -762,7 +825,9 @@ async fn cmd_graph(cli: &Cli, graph_type: &str) -> Result<()> {
     match graph_type {
         "resource" => {
             let provider_map = executor::engine::build_provider_map(&workspace);
-            let (graph, _) = dag::resource_graph::build_resource_dag(&workspace, &provider_map)?;
+            let var_defaults = executor::engine::build_variable_defaults(&workspace);
+            let (graph, _) =
+                dag::resource_graph::build_resource_dag(&workspace, &provider_map, &var_defaults)?;
             let dot = dag::resource_graph::to_dot(&graph);
             println!("{}", dot);
         }
@@ -1012,6 +1077,13 @@ async fn cmd_validate(cli: &Cli) -> Result<()> {
                 );
             }
         }
+    }
+
+    // Validate count/for_each references
+    let validation_errors = dag::validation::validate_count_references(&workspace);
+    if !validation_errors.is_empty() {
+        dag::validation::print_validation_errors(&validation_errors);
+        bail!("Validation failed.");
     }
 
     output::formatter::print_success("Configuration is valid.");

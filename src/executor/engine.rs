@@ -177,14 +177,37 @@ impl ResourceEngine {
         workspace_id: &str,
     ) -> Result<PlanSummary> {
         let provider_map = build_provider_map(workspace);
-        let (graph, _node_map) = resource_graph::build_resource_dag(workspace, &provider_map)?;
+        let var_defaults = build_variable_defaults(workspace);
+        let (graph, _node_map) =
+            resource_graph::build_resource_dag(workspace, &provider_map, &var_defaults)?;
 
         // Ensure all providers are started and configured
         self.initialize_providers(workspace).await?;
 
         let pm = Arc::clone(&self.provider_manager);
         let ws_id = workspace_id.to_string();
-        let eval_ctx = EvalContext::plan_only(build_variable_defaults(workspace));
+
+        // Pre-load existing resource states so cross-resource references resolve during plan
+        let resource_states = Arc::new(DashMap::new());
+        {
+            let existing = backend
+                .list_resources(
+                    &ws_id,
+                    &crate::state::models::ResourceFilter {
+                        resource_type: None,
+                        module_path: None,
+                        status: None,
+                        address_pattern: None,
+                    },
+                )
+                .await?;
+            for res in existing {
+                if let Ok(attrs) = serde_json::from_str::<serde_json::Value>(&res.attributes_json)
+                {
+                    resource_states.insert(res.address.clone(), attrs);
+                }
+            }
+        }
 
         let mut changes = Vec::new();
         let mut outputs = Vec::new();
@@ -205,6 +228,7 @@ impl ResourceEngine {
                     resource_type,
                     provider_source,
                     config,
+                    index,
                     ..
                 } => {
                     planned_count += 1;
@@ -215,6 +239,20 @@ impl ResourceEngine {
                         planned_count,
                         total_resources,
                     );
+
+                    // Build eval context with count.index / each.key + existing resource states
+                    let mut eval_ctx = EvalContext::with_states(var_defaults.clone(), Arc::clone(&resource_states));
+                    match index {
+                        Some(crate::config::types::ResourceIndex::Count(i)) => {
+                            eval_ctx.count_index = Some(*i)
+                        }
+                        Some(crate::config::types::ResourceIndex::ForEach(k)) => {
+                            eval_ctx.each_key = Some(k.clone());
+                            eval_ctx.each_value =
+                                Some(serde_json::Value::String(k.clone()));
+                        }
+                        None => {}
+                    }
 
                     // Build the proposed config as JSON
                     let user_config = attributes_to_json(&config.attributes, &eval_ctx);
@@ -275,6 +313,7 @@ impl ResourceEngine {
                     resource_type,
                     provider_source,
                     config,
+                    index,
                     ..
                 } => {
                     planned_count += 1;
@@ -285,7 +324,19 @@ impl ResourceEngine {
                         planned_count,
                         total_resources,
                     );
-                    let user_config = attributes_to_json(&config.attributes, &eval_ctx);
+                    let mut ds_eval_ctx = EvalContext::with_states(var_defaults.clone(), Arc::clone(&resource_states));
+                    match index {
+                        Some(crate::config::types::ResourceIndex::Count(i)) => {
+                            ds_eval_ctx.count_index = Some(*i);
+                        }
+                        Some(crate::config::types::ResourceIndex::ForEach(k)) => {
+                            ds_eval_ctx.each_key = Some(k.clone());
+                            ds_eval_ctx.each_value =
+                                Some(serde_json::Value::String(k.clone()));
+                        }
+                        None => {}
+                    }
+                    let user_config = attributes_to_json(&config.attributes, &ds_eval_ctx);
 
                     // Build full config with all schema attributes
                     let config_json = if let Ok(Some(schema)) = pm
@@ -387,12 +438,13 @@ impl ResourceEngine {
         plan: &PlanSummary,
     ) -> Result<ApplySummary> {
         let provider_map = build_provider_map(workspace);
-        let (graph, _node_map) = resource_graph::build_resource_dag(workspace, &provider_map)?;
+        let var_defaults = build_variable_defaults(workspace);
+        let (graph, _node_map) =
+            resource_graph::build_resource_dag(workspace, &provider_map, &var_defaults)?;
 
         let pm = Arc::clone(&self.provider_manager);
         let ws_id = workspace_id.to_string();
         let backend_clone = Arc::clone(&backend);
-        let var_defaults = build_variable_defaults(workspace);
         // Shared map of completed resource states for cross-resource reference resolution.
         // As each resource completes, its new state is inserted here so dependents can
         // resolve references like `aws_s3_bucket.public_scripts.id`.
@@ -412,8 +464,7 @@ impl ResourceEngine {
             let ws_id = ws_id.clone();
             let backend = Arc::clone(&backend_clone);
             let resource_states = Arc::clone(&resource_states);
-            let eval_ctx =
-                EvalContext::with_states(var_defaults.clone(), Arc::clone(&resource_states));
+            let var_defaults = var_defaults.clone();
 
             Box::pin(async move {
                 match node {
@@ -422,8 +473,24 @@ impl ResourceEngine {
                         ref resource_type,
                         ref provider_source,
                         ref config,
+                        ref index,
                         ..
                     } => {
+                        let mut eval_ctx = EvalContext::with_states(
+                            var_defaults.clone(),
+                            Arc::clone(&resource_states),
+                        );
+                        match index {
+                            Some(crate::config::types::ResourceIndex::Count(i)) => {
+                                eval_ctx.count_index = Some(*i);
+                            }
+                            Some(crate::config::types::ResourceIndex::ForEach(k)) => {
+                                eval_ctx.each_key = Some(k.clone());
+                                eval_ctx.each_value =
+                                    Some(serde_json::Value::String(k.clone()));
+                            }
+                            None => {}
+                        }
                         let user_config = attributes_to_json(&config.attributes, &eval_ctx);
 
                         // Build full config with all schema attributes for msgpack encoding
@@ -541,6 +608,15 @@ impl ResourceEngine {
                             resource_state.provider_source = provider_source.to_string();
                             resource_state.status = "created".to_string();
                             resource_state.attributes_json = serde_json::to_string(new_state)?;
+                            resource_state.index_key = match index {
+                                Some(crate::config::types::ResourceIndex::Count(i)) => {
+                                    Some(i.to_string())
+                                }
+                                Some(crate::config::types::ResourceIndex::ForEach(k)) => {
+                                    Some(k.clone())
+                                }
+                                None => None,
+                            };
 
                             backend.upsert_resource(&resource_state).await?;
 
@@ -554,8 +630,24 @@ impl ResourceEngine {
                         ref resource_type,
                         ref provider_source,
                         ref config,
+                        ref index,
                         ..
                     } => {
+                        let mut eval_ctx = EvalContext::with_states(
+                            var_defaults.clone(),
+                            Arc::clone(&resource_states),
+                        );
+                        match index {
+                            Some(crate::config::types::ResourceIndex::Count(i)) => {
+                                eval_ctx.count_index = Some(*i);
+                            }
+                            Some(crate::config::types::ResourceIndex::ForEach(k)) => {
+                                eval_ctx.each_key = Some(k.clone());
+                                eval_ctx.each_value =
+                                    Some(serde_json::Value::String(k.clone()));
+                            }
+                            None => {}
+                        }
                         let user_config = attributes_to_json(&config.attributes, &eval_ctx);
 
                         // Build full config with all schema attributes
@@ -628,7 +720,9 @@ impl ResourceEngine {
         workspace_id: &str,
     ) -> Result<ApplySummary> {
         let provider_map = build_provider_map(workspace);
-        let (graph, _node_map) = resource_graph::build_resource_dag(workspace, &provider_map)?;
+        let var_defaults = build_variable_defaults(workspace);
+        let (graph, _node_map) =
+            resource_graph::build_resource_dag(workspace, &provider_map, &var_defaults)?;
 
         // For destroy, we reverse the graph edges so dependents are destroyed first
         let mut reverse_graph = petgraph::graph::DiGraph::new();
@@ -653,7 +747,6 @@ impl ResourceEngine {
         let pm = Arc::clone(&self.provider_manager);
         let ws_id = workspace_id.to_string();
         let backend_clone = Arc::clone(&backend);
-        let var_defaults = build_variable_defaults(workspace);
 
         self.initialize_providers(workspace).await?;
 
@@ -661,7 +754,7 @@ impl ResourceEngine {
             let pm = Arc::clone(&pm);
             let ws_id = ws_id.clone();
             let backend = Arc::clone(&backend_clone);
-            let eval_ctx = EvalContext::plan_only(var_defaults.clone());
+            let var_defaults = var_defaults.clone();
 
             Box::pin(async move {
                 match node {
@@ -670,8 +763,21 @@ impl ResourceEngine {
                         ref resource_type,
                         ref provider_source,
                         ref config,
+                        ref index,
                         ..
                     } => {
+                        let mut eval_ctx = EvalContext::plan_only(var_defaults.clone());
+                        match index {
+                            Some(crate::config::types::ResourceIndex::Count(i)) => {
+                                eval_ctx.count_index = Some(*i);
+                            }
+                            Some(crate::config::types::ResourceIndex::ForEach(k)) => {
+                                eval_ctx.each_key = Some(k.clone());
+                                eval_ctx.each_value =
+                                    Some(serde_json::Value::String(k.clone()));
+                            }
+                            None => {}
+                        }
                         // Get current state
                         let current_state = backend
                             .get_resource(&ws_id, address)
@@ -844,34 +950,46 @@ pub fn build_provider_map(workspace: &WorkspaceConfig) -> HashMap<String, String
 
 /// Evaluation context for resolving expressions.
 /// Contains variable defaults and completed resource states for cross-resource references.
-struct EvalContext {
-    var_defaults: HashMap<String, serde_json::Value>,
+pub struct EvalContext {
+    pub var_defaults: HashMap<String, serde_json::Value>,
     /// Completed resource states keyed by address (e.g. "aws_s3_bucket.public_scripts").
     /// Populated during apply as resources complete. Empty during plan.
-    resource_states: Arc<DashMap<String, serde_json::Value>>,
+    pub resource_states: Arc<DashMap<String, serde_json::Value>>,
+    /// Current count index for resources with `count` (e.g. count.index = 3).
+    pub count_index: Option<usize>,
+    /// Current for_each key (e.g. each.key = "us-east-1a").
+    pub each_key: Option<String>,
+    /// Current for_each value.
+    pub each_value: Option<serde_json::Value>,
 }
 
 impl EvalContext {
-    fn plan_only(var_defaults: HashMap<String, serde_json::Value>) -> Self {
+    pub fn plan_only(var_defaults: HashMap<String, serde_json::Value>) -> Self {
         Self {
             var_defaults,
             resource_states: Arc::new(DashMap::new()),
+            count_index: None,
+            each_key: None,
+            each_value: None,
         }
     }
 
-    fn with_states(
+    pub fn with_states(
         var_defaults: HashMap<String, serde_json::Value>,
         resource_states: Arc<DashMap<String, serde_json::Value>>,
     ) -> Self {
         Self {
             var_defaults,
             resource_states,
+            count_index: None,
+            each_key: None,
+            each_value: None,
         }
     }
 }
 
 /// Convert attribute expressions to a JSON object, resolving variable and resource references.
-fn attributes_to_json(
+pub fn attributes_to_json(
     attrs: &HashMap<String, crate::config::types::Expression>,
     ctx: &EvalContext,
 ) -> serde_json::Value {
@@ -883,7 +1001,7 @@ fn attributes_to_json(
 }
 
 /// Evaluate an expression to a JSON value, resolving variable and resource references.
-fn eval_expression(
+pub fn eval_expression(
     expr: &crate::config::types::Expression,
     ctx: &EvalContext,
 ) -> serde_json::Value {
@@ -1226,6 +1344,34 @@ fn resolve_reference(parts: &[String], ctx: &EvalContext) -> serde_json::Value {
         return serde_json::Value::Null;
     }
 
+    // count.index
+    if parts.len() >= 2 && parts[0] == "count" && parts[1] == "index" {
+        if let Some(idx) = ctx.count_index {
+            return serde_json::json!(idx);
+        }
+        return serde_json::Value::Null;
+    }
+
+    // each.key / each.value
+    if parts.len() >= 2 && parts[0] == "each" {
+        match parts[1].as_str() {
+            "key" => {
+                return ctx
+                    .each_key
+                    .as_ref()
+                    .map(|k| serde_json::Value::String(k.clone()))
+                    .unwrap_or(serde_json::Value::Null);
+            }
+            "value" => {
+                return ctx
+                    .each_value
+                    .clone()
+                    .unwrap_or(serde_json::Value::Null);
+            }
+            _ => return serde_json::Value::Null,
+        }
+    }
+
     // data.TYPE.NAME.ATTR
     if parts.len() >= 4 && parts[0] == "data" {
         let address = format!("data.{}.{}", parts[1], parts[2]);
@@ -1236,8 +1382,26 @@ fn resolve_reference(parts: &[String], ctx: &EvalContext) -> serde_json::Value {
     }
 
     // resource references: TYPE.NAME.ATTR (e.g. aws_s3_bucket.public_scripts.id)
+    // Also handles splat: TYPE.NAME.[*].ATTR → collects from all indexed instances
     if parts.len() >= 3 {
         let address = format!("{}.{}", parts[0], parts[1]);
+
+        // Splat: aws_instance.main[*].id → collect attr from all indexed instances
+        if parts.len() >= 4 && parts[2] == "[*]" {
+            let attr_path = &parts[3..];
+            let prefix = format!("{}[", address);
+            let mut values: Vec<(String, serde_json::Value)> = Vec::new();
+            for entry in ctx.resource_states.iter() {
+                if entry.key().starts_with(&prefix) || *entry.key() == address {
+                    let val = traverse_json_value(entry.value(), attr_path);
+                    values.push((entry.key().clone(), val));
+                }
+            }
+            // Sort by key to get consistent ordering (e.g. [0], [1], [2], ...)
+            values.sort_by(|a, b| a.0.cmp(&b.0));
+            return serde_json::Value::Array(values.into_iter().map(|(_, v)| v).collect());
+        }
+
         if let Some(state) = ctx.resource_states.get(&address) {
             return traverse_json_value(state.value(), &parts[2..]);
         }
@@ -1347,7 +1511,7 @@ fn resolve_interpolated_string(s: &str, ctx: &EvalContext) -> serde_json::Value 
 }
 
 /// Build a map of variable name -> default JSON value from workspace variables.
-fn build_variable_defaults(workspace: &WorkspaceConfig) -> HashMap<String, serde_json::Value> {
+pub fn build_variable_defaults(workspace: &WorkspaceConfig) -> HashMap<String, serde_json::Value> {
     let empty_ctx = EvalContext::plan_only(HashMap::new());
     let mut defaults = HashMap::new();
     for var in &workspace.variables {
