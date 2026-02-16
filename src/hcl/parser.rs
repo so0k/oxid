@@ -264,10 +264,8 @@ fn parse_resource_body(
                                     items
                                 }
                             };
-                            attributes.insert(
-                                ident.to_string(),
-                                Expression::Literal(Value::List(arr)),
-                            );
+                            attributes
+                                .insert(ident.to_string(), Expression::Literal(Value::List(arr)));
                         } else {
                             attributes.insert(ident.to_string(), nested);
                         }

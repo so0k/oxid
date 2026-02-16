@@ -202,8 +202,7 @@ impl ResourceEngine {
                 )
                 .await?;
             for res in existing {
-                if let Ok(attrs) = serde_json::from_str::<serde_json::Value>(&res.attributes_json)
-                {
+                if let Ok(attrs) = serde_json::from_str::<serde_json::Value>(&res.attributes_json) {
                     resource_states.insert(res.address.clone(), attrs);
                 }
             }
@@ -241,15 +240,17 @@ impl ResourceEngine {
                     );
 
                     // Build eval context with count.index / each.key + existing resource states
-                    let mut eval_ctx = EvalContext::with_states(var_defaults.clone(), Arc::clone(&resource_states));
+                    let mut eval_ctx = EvalContext::with_states(
+                        var_defaults.clone(),
+                        Arc::clone(&resource_states),
+                    );
                     match index {
                         Some(crate::config::types::ResourceIndex::Count(i)) => {
                             eval_ctx.count_index = Some(*i)
                         }
                         Some(crate::config::types::ResourceIndex::ForEach(k)) => {
                             eval_ctx.each_key = Some(k.clone());
-                            eval_ctx.each_value =
-                                Some(serde_json::Value::String(k.clone()));
+                            eval_ctx.each_value = Some(serde_json::Value::String(k.clone()));
                         }
                         None => {}
                     }
@@ -324,15 +325,17 @@ impl ResourceEngine {
                         planned_count,
                         total_resources,
                     );
-                    let mut ds_eval_ctx = EvalContext::with_states(var_defaults.clone(), Arc::clone(&resource_states));
+                    let mut ds_eval_ctx = EvalContext::with_states(
+                        var_defaults.clone(),
+                        Arc::clone(&resource_states),
+                    );
                     match index {
                         Some(crate::config::types::ResourceIndex::Count(i)) => {
                             ds_eval_ctx.count_index = Some(*i);
                         }
                         Some(crate::config::types::ResourceIndex::ForEach(k)) => {
                             ds_eval_ctx.each_key = Some(k.clone());
-                            ds_eval_ctx.each_value =
-                                Some(serde_json::Value::String(k.clone()));
+                            ds_eval_ctx.each_value = Some(serde_json::Value::String(k.clone()));
                         }
                         None => {}
                     }
@@ -486,8 +489,7 @@ impl ResourceEngine {
                             }
                             Some(crate::config::types::ResourceIndex::ForEach(k)) => {
                                 eval_ctx.each_key = Some(k.clone());
-                                eval_ctx.each_value =
-                                    Some(serde_json::Value::String(k.clone()));
+                                eval_ctx.each_value = Some(serde_json::Value::String(k.clone()));
                             }
                             None => {}
                         }
@@ -643,8 +645,7 @@ impl ResourceEngine {
                             }
                             Some(crate::config::types::ResourceIndex::ForEach(k)) => {
                                 eval_ctx.each_key = Some(k.clone());
-                                eval_ctx.each_value =
-                                    Some(serde_json::Value::String(k.clone()));
+                                eval_ctx.each_value = Some(serde_json::Value::String(k.clone()));
                             }
                             None => {}
                         }
@@ -773,8 +774,7 @@ impl ResourceEngine {
                             }
                             Some(crate::config::types::ResourceIndex::ForEach(k)) => {
                                 eval_ctx.each_key = Some(k.clone());
-                                eval_ctx.each_value =
-                                    Some(serde_json::Value::String(k.clone()));
+                                eval_ctx.each_value = Some(serde_json::Value::String(k.clone()));
                             }
                             None => {}
                         }
@@ -1363,10 +1363,7 @@ fn resolve_reference(parts: &[String], ctx: &EvalContext) -> serde_json::Value {
                     .unwrap_or(serde_json::Value::Null);
             }
             "value" => {
-                return ctx
-                    .each_value
-                    .clone()
-                    .unwrap_or(serde_json::Value::Null);
+                return ctx.each_value.clone().unwrap_or(serde_json::Value::Null);
             }
             _ => return serde_json::Value::Null,
         }
