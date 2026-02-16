@@ -1,6 +1,6 @@
 # Oxid
 
-A standalone infrastructure-as-code engine. Open-source alternative to Terraform and OpenTofu.
+A standalone infrastructure-as-code engine. Open-source alternative to Terraform.
 
 Oxid parses `.tf` (HCL) files natively and communicates directly with Terraform providers via gRPC — no `terraform` or `tofu` binary required.
 
