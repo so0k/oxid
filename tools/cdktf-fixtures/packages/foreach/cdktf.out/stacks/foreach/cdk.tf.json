@@ -1,0 +1,127 @@
+{
+  "//": {
+    "metadata": {
+      "backend": "local",
+      "stackName": "foreach",
+      "version": "0.20.12"
+    },
+    "outputs": {
+    }
+  },
+  "provider": {
+    "null": [
+      {
+      }
+    ],
+    "random": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "null_resource": {
+      "triggered": {
+        "//": {
+          "metadata": {
+            "path": "foreach/triggered",
+            "uniqueId": "triggered"
+          }
+        },
+        "for_each": "${toset([\"alpha\", \"beta\", \"gamma\"])}",
+        "triggers": {
+          "name": "${each.value}",
+          "timestamp": "2026-01-01T00:00:00Z"
+        }
+      }
+    },
+    "random_integer": {
+      "region_seeds": {
+        "//": {
+          "metadata": {
+            "path": "foreach/region_seeds",
+            "uniqueId": "region_seeds"
+          }
+        },
+        "for_each": {
+          "ap": "ap-southeast-1",
+          "eu": "eu-west-1",
+          "us": "us-east-1"
+        },
+        "max": 10000,
+        "min": 1
+      }
+    },
+    "random_pet": {
+      "env_names": {
+        "//": {
+          "metadata": {
+            "path": "foreach/env_names",
+            "uniqueId": "env_names"
+          }
+        },
+        "for_each": "${toset(var.environments)}",
+        "length": 2,
+        "prefix": "${each.value}"
+      }
+    },
+    "random_string": {
+      "service_tokens": {
+        "//": {
+          "metadata": {
+            "path": "foreach/service_tokens",
+            "uniqueId": "service_tokens"
+          }
+        },
+        "for_each": "${var.services}",
+        "length": 32,
+        "special": false
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "local": {
+        "path": "/Users/vincentdesmet/cdktn/oxid/tools/cdktf-fixtures/packages/foreach/terraform.foreach.tfstate"
+      }
+    },
+    "required_providers": {
+      "null": {
+        "source": "null",
+        "version": "3.2.4"
+      },
+      "random": {
+        "source": "hashicorp/random",
+        "version": "3.7.2"
+      }
+    }
+  },
+  "variable": {
+    "environments": {
+      "default": [
+        "dev",
+        "staging",
+        "prod"
+      ],
+      "description": "List of environments to create resources for",
+      "type": "list(string)"
+    },
+    "services": {
+      "default": {
+        "api": {
+          "port": 8080,
+          "replicas": 3
+        },
+        "web": {
+          "port": 3000,
+          "replicas": 2
+        },
+        "worker": {
+          "port": 9090,
+          "replicas": 1
+        }
+      },
+      "description": "Map of service names to their configurations",
+      "type": "map(object({ port = number, replicas = number }))"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "language": "typescript",
+  "app": "bun run main.ts",
+  "projectId": "oxid-fixtures-encryption",
+  "sendCrashReports": false,
+  "terraformProviders": [],
+  "codeMakerOutput": "imports"
+}

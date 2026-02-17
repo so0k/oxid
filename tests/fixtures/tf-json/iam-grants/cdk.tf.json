@@ -1,0 +1,533 @@
+{
+  "//": {
+    "metadata": {
+      "backend": "local",
+      "stackName": "iam-grants",
+      "version": "0.21.0"
+    },
+    "outputs": {
+      "iam-grants": {
+        "app_role": "app_role",
+        "ci_role": "ci_role",
+        "conditional_role": "conditional_role",
+        "external_id_role": "external_id_role",
+        "lambda_policy": "lambda_policy",
+        "org_role": "org_role",
+        "shared_policy": "shared_policy"
+      }
+    }
+  },
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/CallerIdentity",
+            "uniqueId": "CallerIdentity"
+          }
+        },
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "AppInlinePolicy_57A073D4": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/AppInlinePolicy/Resource/Resource",
+            "uniqueId": "AppInlinePolicy_57A073D4"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "ec2:Describe*"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      },
+      "AppRole_AssumeRolePolicy_173771ED": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/AppRole/AssumeRolePolicy/Resource",
+            "uniqueId": "AppRole_AssumeRolePolicy_173771ED"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "${data.aws_service_principal.aws_svcp_default_region_sqs.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "AppRole_DefaultPolicy_753D5093": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/AppRole/DefaultPolicy/Resource/Resource",
+            "uniqueId": "AppRole_DefaultPolicy_753D5093"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "sqs:SendMessage"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      },
+      "CiRole_AssumeRolePolicy_6E67EC6C": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/CiRole/AssumeRolePolicy/Resource",
+            "uniqueId": "CiRole_AssumeRolePolicy_6E67EC6C"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:root"
+                ],
+                "type": "AWS"
+              }
+            ]
+          }
+        ]
+      },
+      "ConditionalRole_AssumeRolePolicy_6CB11507": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/ConditionalRole/AssumeRolePolicy/Resource",
+            "uniqueId": "ConditionalRole_AssumeRolePolicy_6CB11507"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "condition": [
+              {
+                "test": "StringEquals",
+                "values": [
+                  "true"
+                ],
+                "variable": "aws:PrincipalTag/${var.PrincipalTag}"
+              }
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:root"
+                ],
+                "type": "AWS"
+              }
+            ]
+          }
+        ]
+      },
+      "ExternalIdRole_AssumeRolePolicy_C1BC5271": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/ExternalIdRole/AssumeRolePolicy/Resource",
+            "uniqueId": "ExternalIdRole_AssumeRolePolicy_C1BC5271"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "condition": [
+              {
+                "test": "StringEquals",
+                "values": [
+                  "supply-me"
+                ],
+                "variable": "sts:ExternalId"
+              }
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:root"
+                ],
+                "type": "AWS"
+              }
+            ]
+          }
+        ]
+      },
+      "LambdaPolicy_48FB1F7E": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/LambdaPolicy/Policy/Resource",
+            "uniqueId": "LambdaPolicy_48FB1F7E"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "lambda:InvokeFunction"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ]
+          },
+          {
+            "actions": [
+              "iam:PassRole"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "${aws_iam_role.AppRole_DC883459.arn}"
+            ]
+          }
+        ]
+      },
+      "OrgRole_AssumeRolePolicy_625F6475": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/OrgRole/AssumeRolePolicy/Resource",
+            "uniqueId": "OrgRole_AssumeRolePolicy_625F6475"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "condition": [
+              {
+                "test": "StringEquals",
+                "values": [
+                  "o-1234"
+                ],
+                "variable": "aws:PrincipalOrgID"
+              }
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "*"
+                ],
+                "type": "AWS"
+              }
+            ]
+          }
+        ]
+      },
+      "SharedPolicy_A295DEBC": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/SharedPolicy/Policy/Resource",
+            "uniqueId": "SharedPolicy_A295DEBC"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "s3:GetObject",
+              "s3:ListBucket"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ]
+          },
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "${aws_iam_role.CiRole_5A6E8228.arn}"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/Partitition",
+            "uniqueId": "Partitition"
+          }
+        },
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_sqs": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/aws_svcp_default_region_sqs}",
+            "uniqueId": "aws_svcp_default_region_sqs"
+          }
+        },
+        "service_name": "sqs"
+      }
+    }
+  },
+  "output": {
+    "app_role": {
+      "description": "Outputs for test-AppRole",
+      "value": {
+        "arn": "${aws_iam_role.AppRole_DC883459.arn}",
+        "name": "${aws_iam_role.AppRole_DC883459.name}"
+      }
+    },
+    "ci_role": {
+      "description": "Outputs for test-CiRole",
+      "value": {
+        "arn": "${aws_iam_role.CiRole_5A6E8228.arn}",
+        "name": "${aws_iam_role.CiRole_5A6E8228.name}"
+      }
+    },
+    "conditional_role": {
+      "description": "Outputs for test-ConditionalRole",
+      "value": {
+        "arn": "${aws_iam_role.ConditionalRole_465DC842.arn}",
+        "name": "${aws_iam_role.ConditionalRole_465DC842.name}"
+      }
+    },
+    "external_id_role": {
+      "description": "Outputs for test-ExternalIdRole",
+      "value": {
+        "arn": "${aws_iam_role.ExternalIdRole_7BAFA35F.arn}",
+        "name": "${aws_iam_role.ExternalIdRole_7BAFA35F.name}"
+      }
+    },
+    "lambda_policy": {
+      "description": "Outputs for test-LambdaPolicy",
+      "value": {
+        "arn": "${aws_iam_policy.LambdaPolicy_7FF67BE6.arn}"
+      }
+    },
+    "org_role": {
+      "description": "Outputs for test-OrgRole",
+      "value": {
+        "arn": "${aws_iam_role.OrgRole_9476164E.arn}",
+        "name": "${aws_iam_role.OrgRole_9476164E.name}"
+      }
+    },
+    "shared_policy": {
+      "description": "Outputs for test-SharedPolicy",
+      "value": {
+        "arn": "${aws_iam_policy.SharedPolicy_CFE81473.arn}"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_iam_policy": {
+      "LambdaPolicy_7FF67BE6": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/LambdaPolicy/Resource",
+            "uniqueId": "LambdaPolicy_7FF67BE6"
+          }
+        },
+        "name_prefix": "12345678-1234-iam-grantsLambdaPolicy",
+        "path": "/",
+        "policy": "${data.aws_iam_policy_document.LambdaPolicy_48FB1F7E.json}",
+        "tags": {
+          "Name": "test-LambdaPolicy",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      },
+      "SharedPolicy_CFE81473": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/SharedPolicy/Resource",
+            "uniqueId": "SharedPolicy_CFE81473"
+          }
+        },
+        "description": "Shared access policy for Oxid services",
+        "name": "OxidSharedAccess",
+        "path": "/oxid/",
+        "policy": "${data.aws_iam_policy_document.SharedPolicy_A295DEBC.json}",
+        "tags": {
+          "Name": "test-SharedPolicy",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      }
+    },
+    "aws_iam_role": {
+      "AppRole_DC883459": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/AppRole/Resource",
+            "uniqueId": "AppRole_DC883459"
+          }
+        },
+        "assume_role_policy": "${data.aws_iam_policy_document.AppRole_AssumeRolePolicy_173771ED.json}",
+        "name_prefix": "12345678-1234-iam-grantsAppRole",
+        "tags": {
+          "Name": "test-AppRole",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      },
+      "CiRole_5A6E8228": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/CiRole/Resource",
+            "uniqueId": "CiRole_5A6E8228"
+          }
+        },
+        "assume_role_policy": "${data.aws_iam_policy_document.CiRole_AssumeRolePolicy_6E67EC6C.json}",
+        "name_prefix": "12345678-1234-iam-grantsCiRole",
+        "tags": {
+          "Name": "test-CiRole",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      },
+      "ConditionalRole_465DC842": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/ConditionalRole/Resource",
+            "uniqueId": "ConditionalRole_465DC842"
+          }
+        },
+        "assume_role_policy": "${data.aws_iam_policy_document.ConditionalRole_AssumeRolePolicy_6CB11507.json}",
+        "name_prefix": "12345678-1234-iam-gantsConditionalRole",
+        "tags": {
+          "Name": "test-ConditionalRole",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      },
+      "ExternalIdRole_7BAFA35F": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/ExternalIdRole/Resource",
+            "uniqueId": "ExternalIdRole_7BAFA35F"
+          }
+        },
+        "assume_role_policy": "${data.aws_iam_policy_document.ExternalIdRole_AssumeRolePolicy_C1BC5271.json}",
+        "name_prefix": "12345678-1234-iam-grantsExternalIdRole",
+        "tags": {
+          "Name": "test-ExternalIdRole",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      },
+      "OrgRole_9476164E": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/OrgRole/Resource",
+            "uniqueId": "OrgRole_9476164E"
+          }
+        },
+        "assume_role_policy": "${data.aws_iam_policy_document.OrgRole_AssumeRolePolicy_625F6475.json}",
+        "name_prefix": "12345678-1234-iam-grantsOrgRole",
+        "tags": {
+          "Name": "test-OrgRole",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      }
+    },
+    "aws_iam_role_policy": {
+      "AppInlinePolicy_ResourceRoles0_31EA23A0": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/AppInlinePolicy/ResourceRoles0",
+            "uniqueId": "AppInlinePolicy_ResourceRoles0_31EA23A0"
+          }
+        },
+        "name": "InlineAccess",
+        "policy": "${data.aws_iam_policy_document.AppInlinePolicy_57A073D4.json}",
+        "role": "${aws_iam_role.AppRole_DC883459.name}"
+      },
+      "AppRole_DefaultPolicy_ResourceRoles0_80DF6CAF": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/AppRole/DefaultPolicy/ResourceRoles0",
+            "uniqueId": "AppRole_DefaultPolicy_ResourceRoles0_80DF6CAF"
+          }
+        },
+        "name": "iamgrantsAppRoleDefaultPolicy52FF837D",
+        "policy": "${data.aws_iam_policy_document.AppRole_DefaultPolicy_753D5093.json}",
+        "role": "${aws_iam_role.AppRole_DC883459.name}"
+      }
+    },
+    "aws_iam_role_policy_attachment": {
+      "SecurityAudit_Roles0_BAD1FEFC": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/SecurityAudit/Roles0",
+            "uniqueId": "SecurityAudit_Roles0_BAD1FEFC"
+          }
+        },
+        "policy_arn": "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/SecurityAudit",
+        "role": "${aws_iam_role.CiRole_5A6E8228.name}"
+      },
+      "SharedPolicy_Roles0_00E53CB5": {
+        "//": {
+          "metadata": {
+            "path": "iam-grants/SharedPolicy/Roles0",
+            "uniqueId": "SharedPolicy_Roles0_00E53CB5"
+          }
+        },
+        "policy_arn": "${aws_iam_policy.SharedPolicy_CFE81473.arn}",
+        "role": "${aws_iam_role.CiRole_5A6E8228.name}"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "local": {
+        "path": "iam-grants.tfstate"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "6.25.0"
+      }
+    }
+  },
+  "variable": {
+    "PrincipalTag": {
+      "default": "developer"
+    }
+  }
+}

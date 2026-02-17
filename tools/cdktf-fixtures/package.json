@@ -1,0 +1,14 @@
+{
+  "name": "oxid-cdktf-fixtures",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "synth": "bun run scripts/synth-all.ts",
+    "collect": "bun run scripts/collect-fixtures.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

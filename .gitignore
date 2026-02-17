@@ -44,3 +44,7 @@ claude-code-prompt.md
 *.tfstate
 *.tfstate.*
 .terraform.lock.hcl
+
+# CDKTF Fixtures
+node_modules/
+cdktf.out/

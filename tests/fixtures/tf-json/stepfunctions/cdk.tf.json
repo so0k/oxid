@@ -1,0 +1,504 @@
+{
+  "//": {
+    "metadata": {
+      "backend": "local",
+      "stackName": "stepfunctions",
+      "version": "0.21.0"
+    },
+    "outputs": {
+      "stepfunctions": {
+        "state_machine": "state_machine"
+      }
+    }
+  },
+  "data": {
+    "archive_file": {
+      "CheckStatusLambda_stepfunctionsCheckStatusLamb4c28ae6e72111ae4c5096e0fb3faE2620760_6E42A924": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/CheckStatusLambda/stepfunctionsCheckStatusLamb4c28ae6e72111ae4c5096e0fb3faE2620760",
+            "uniqueId": "CheckStatusLambda_stepfunctionsCheckStatusLamb4c28ae6e72111ae4c5096e0fb3faE2620760_6E42A924"
+          }
+        },
+        "output_path": "${path.root}/.archive_files/stepfunctionsCheckStatusLamb4c28ae6e72111ae4c5096e0fb3faE2620760.zip",
+        "provider": "archive",
+        "source_content": "exports.handler = async (event) => ({ status: \"SUCCEEDED\" });",
+        "source_content_filename": "index.js",
+        "type": "zip"
+      },
+      "SubmitJobLambda_stepfunctionsSubmitJobLambdaf528cc3d736c6eb505b3c6d8e2c5970B6E0C_D048F06D": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/SubmitJobLambda/stepfunctionsSubmitJobLambdaf528cc3d736c6eb505b3c6d8e2c5970B6E0C",
+            "uniqueId": "SubmitJobLambda_stepfunctionsSubmitJobLambdaf528cc3d736c6eb505b3c6d8e2c5970B6E0C_D048F06D"
+          }
+        },
+        "output_path": "${path.root}/.archive_files/stepfunctionsSubmitJobLambdaf528cc3d736c6eb505b3c6d8e2c5970B6E0C.zip",
+        "provider": "archive",
+        "source_content": "exports.handler = async (event) => ({ jobId: \"job-123\", status: \"SUBMITTED\" });",
+        "source_content_filename": "index.js",
+        "type": "zip"
+      }
+    },
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/CallerIdentity",
+            "uniqueId": "CallerIdentity"
+          }
+        },
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "CheckStatusLambda_ServiceRole_AssumeRolePolicy_C3FB9FA2": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/CheckStatusLambda/ServiceRole/AssumeRolePolicy/Resource",
+            "uniqueId": "CheckStatusLambda_ServiceRole_AssumeRolePolicy_C3FB9FA2"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "${data.aws_service_principal.aws_svcp_default_region_lambda.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "CheckStatusLambda_ServiceRole_DefaultPolicy_12270C31": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/CheckStatusLambda/ServiceRole/DefaultPolicy/Resource/Resource",
+            "uniqueId": "CheckStatusLambda_ServiceRole_DefaultPolicy_12270C31"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "xray:PutTraceSegments",
+              "xray:PutTelemetryRecords"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      },
+      "Pipeline_Role_AssumeRolePolicy_40F64AA2": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/Pipeline/Role/AssumeRolePolicy/Resource",
+            "uniqueId": "Pipeline_Role_AssumeRolePolicy_40F64AA2"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "${data.aws_service_principal.aws_svcp_default_region_states.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "Pipeline_Role_DefaultPolicy_E1A72B48": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/Pipeline/Role/DefaultPolicy/Resource/Resource",
+            "uniqueId": "Pipeline_Role_DefaultPolicy_E1A72B48"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "lambda:InvokeFunction"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "${aws_lambda_function.SubmitJobLambda_4B842AEF.arn}"
+            ]
+          },
+          {
+            "actions": [
+              "lambda:InvokeFunction"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "${aws_lambda_function.CheckStatusLambda_66E1DC5D.arn}"
+            ]
+          }
+        ]
+      },
+      "SubmitJobLambda_ServiceRole_AssumeRolePolicy_8715F97C": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/SubmitJobLambda/ServiceRole/AssumeRolePolicy/Resource",
+            "uniqueId": "SubmitJobLambda_ServiceRole_AssumeRolePolicy_8715F97C"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "${data.aws_service_principal.aws_svcp_default_region_lambda.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "SubmitJobLambda_ServiceRole_DefaultPolicy_535A207B": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/SubmitJobLambda/ServiceRole/DefaultPolicy/Resource/Resource",
+            "uniqueId": "SubmitJobLambda_ServiceRole_DefaultPolicy_535A207B"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "xray:PutTraceSegments",
+              "xray:PutTelemetryRecords"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/Partitition",
+            "uniqueId": "Partitition"
+          }
+        },
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_lambda": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/aws_svcp_default_region_lambda}",
+            "uniqueId": "aws_svcp_default_region_lambda"
+          }
+        },
+        "service_name": "lambda"
+      },
+      "aws_svcp_default_region_states": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/aws_svcp_default_region_states}",
+            "uniqueId": "aws_svcp_default_region_states"
+          }
+        },
+        "service_name": "states"
+      }
+    }
+  },
+  "output": {
+    "state_machine": {
+      "description": "Outputs for test-Pipeline",
+      "value": {
+        "arn": "${aws_sfn_state_machine.Pipeline_C660917D.arn}"
+      }
+    }
+  },
+  "provider": {
+    "archive": [
+      {
+      }
+    ],
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudwatch_log_group": {
+      "CheckStatusLambda_LogGroup_C29A4967": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/CheckStatusLambda/LogGroup",
+            "uniqueId": "CheckStatusLambda_LogGroup_C29A4967"
+          }
+        },
+        "name": "/aws/lambda/12345678-1234-stepfnsCheckStatusLambda",
+        "retention_in_days": 7,
+        "tags": {
+          "Name": "test-CheckStatusLambda",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      },
+      "SubmitJobLambda_LogGroup_CB09F7A6": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/SubmitJobLambda/LogGroup",
+            "uniqueId": "SubmitJobLambda_LogGroup_CB09F7A6"
+          }
+        },
+        "name": "/aws/lambda/12345678-1234-stepfionsSubmitJobLambda",
+        "retention_in_days": 7,
+        "tags": {
+          "Name": "test-SubmitJobLambda",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      }
+    },
+    "aws_iam_role": {
+      "CheckStatusLambda_ServiceRole_6A6681FD": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/CheckStatusLambda/ServiceRole/Resource",
+            "uniqueId": "CheckStatusLambda_ServiceRole_6A6681FD"
+          }
+        },
+        "assume_role_policy": "${data.aws_iam_policy_document.CheckStatusLambda_ServiceRole_AssumeRolePolicy_C3FB9FA2.json}",
+        "name_prefix": "12345678-1234-stepfusLambdaServiceRole",
+        "tags": {
+          "Name": "test-CheckStatusLambda",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      },
+      "Pipeline_Role_D68726F7": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/Pipeline/Role/Resource",
+            "uniqueId": "Pipeline_Role_D68726F7"
+          }
+        },
+        "assume_role_policy": "${data.aws_iam_policy_document.Pipeline_Role_AssumeRolePolicy_40F64AA2.json}",
+        "name_prefix": "12345678-1234-stepfnctionsPipelineRole",
+        "tags": {
+          "Name": "test-Pipeline",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      },
+      "SubmitJobLambda_ServiceRole_C8EC1F86": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/SubmitJobLambda/ServiceRole/Resource",
+            "uniqueId": "SubmitJobLambda_ServiceRole_C8EC1F86"
+          }
+        },
+        "assume_role_policy": "${data.aws_iam_policy_document.SubmitJobLambda_ServiceRole_AssumeRolePolicy_8715F97C.json}",
+        "name_prefix": "12345678-1234-stepfobLambdaServiceRole",
+        "tags": {
+          "Name": "test-SubmitJobLambda",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      }
+    },
+    "aws_iam_role_policy": {
+      "CheckStatusLambda_ServiceRole_DefaultPolicy_ResourceRoles0_1427B0D1": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/CheckStatusLambda/ServiceRole/DefaultPolicy/ResourceRoles0",
+            "uniqueId": "CheckStatusLambda_ServiceRole_DefaultPolicy_ResourceRoles0_1427B0D1"
+          }
+        },
+        "name": "stepfunctionsCheckStatusLambdaServiceRoleDefaultPolicyC84D6B72",
+        "policy": "${data.aws_iam_policy_document.CheckStatusLambda_ServiceRole_DefaultPolicy_12270C31.json}",
+        "role": "${aws_iam_role.CheckStatusLambda_ServiceRole_6A6681FD.name}"
+      },
+      "Pipeline_Role_DefaultPolicy_ResourceRoles0_355E985C": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/Pipeline/Role/DefaultPolicy/ResourceRoles0",
+            "uniqueId": "Pipeline_Role_DefaultPolicy_ResourceRoles0_355E985C"
+          }
+        },
+        "name": "stepfunctionsPipelineRoleDefaultPolicy1ACA2B70",
+        "policy": "${data.aws_iam_policy_document.Pipeline_Role_DefaultPolicy_E1A72B48.json}",
+        "role": "${aws_iam_role.Pipeline_Role_D68726F7.name}"
+      },
+      "SubmitJobLambda_ServiceRole_DefaultPolicy_ResourceRoles0_29CB16D9": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/SubmitJobLambda/ServiceRole/DefaultPolicy/ResourceRoles0",
+            "uniqueId": "SubmitJobLambda_ServiceRole_DefaultPolicy_ResourceRoles0_29CB16D9"
+          }
+        },
+        "name": "stepfunctionsSubmitJobLambdaServiceRoleDefaultPolicy30551582",
+        "policy": "${data.aws_iam_policy_document.SubmitJobLambda_ServiceRole_DefaultPolicy_535A207B.json}",
+        "role": "${aws_iam_role.SubmitJobLambda_ServiceRole_C8EC1F86.name}"
+      }
+    },
+    "aws_iam_role_policy_attachment": {
+      "CheckStatusLambda_AWSLambdaBasicExecutionRole_Roles0_CD0AFA0D": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/CheckStatusLambda/AWSLambdaBasicExecutionRole/Roles0",
+            "uniqueId": "CheckStatusLambda_AWSLambdaBasicExecutionRole_Roles0_CD0AFA0D"
+          }
+        },
+        "policy_arn": "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+        "role": "${aws_iam_role.CheckStatusLambda_ServiceRole_6A6681FD.name}"
+      },
+      "SubmitJobLambda_AWSLambdaBasicExecutionRole_Roles0_CEE24F24": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/SubmitJobLambda/AWSLambdaBasicExecutionRole/Roles0",
+            "uniqueId": "SubmitJobLambda_AWSLambdaBasicExecutionRole_Roles0_CEE24F24"
+          }
+        },
+        "policy_arn": "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+        "role": "${aws_iam_role.SubmitJobLambda_ServiceRole_C8EC1F86.name}"
+      }
+    },
+    "aws_lambda_function": {
+      "CheckStatusLambda_66E1DC5D": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/CheckStatusLambda/Resource",
+            "uniqueId": "CheckStatusLambda_66E1DC5D"
+          }
+        },
+        "architectures": [
+          "x86_64"
+        ],
+        "depends_on": [
+          "aws_cloudwatch_log_group.CheckStatusLambda_LogGroup_C29A4967",
+          "data.aws_iam_policy_document.CheckStatusLambda_ServiceRole_AssumeRolePolicy_C3FB9FA2",
+          "aws_iam_role.CheckStatusLambda_ServiceRole_6A6681FD",
+          "data.aws_iam_policy_document.CheckStatusLambda_ServiceRole_DefaultPolicy_12270C31",
+          "aws_iam_role_policy.CheckStatusLambda_ServiceRole_DefaultPolicy_ResourceRoles0_1427B0D1"
+        ],
+        "environment": {
+          "variables": {
+          }
+        },
+        "filename": "${data.archive_file.CheckStatusLambda_stepfunctionsCheckStatusLamb4c28ae6e72111ae4c5096e0fb3faE2620760_6E42A924.output_path}",
+        "function_name": "12345678-1234-stepfnsCheckStatusLambda",
+        "handler": "index.handler",
+        "memory_size": 128,
+        "role": "${aws_iam_role.CheckStatusLambda_ServiceRole_6A6681FD.arn}",
+        "runtime": "nodejs18.x",
+        "source_code_hash": "${data.archive_file.CheckStatusLambda_stepfunctionsCheckStatusLamb4c28ae6e72111ae4c5096e0fb3faE2620760_6E42A924.output_base64sha256}",
+        "tags": {
+          "Name": "test-CheckStatusLambda",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        },
+        "timeout": 3,
+        "tracing_config": {
+          "mode": "Active"
+        }
+      },
+      "SubmitJobLambda_4B842AEF": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/SubmitJobLambda/Resource",
+            "uniqueId": "SubmitJobLambda_4B842AEF"
+          }
+        },
+        "architectures": [
+          "x86_64"
+        ],
+        "depends_on": [
+          "aws_cloudwatch_log_group.SubmitJobLambda_LogGroup_CB09F7A6",
+          "data.aws_iam_policy_document.SubmitJobLambda_ServiceRole_AssumeRolePolicy_8715F97C",
+          "aws_iam_role.SubmitJobLambda_ServiceRole_C8EC1F86",
+          "data.aws_iam_policy_document.SubmitJobLambda_ServiceRole_DefaultPolicy_535A207B",
+          "aws_iam_role_policy.SubmitJobLambda_ServiceRole_DefaultPolicy_ResourceRoles0_29CB16D9"
+        ],
+        "environment": {
+          "variables": {
+          }
+        },
+        "filename": "${data.archive_file.SubmitJobLambda_stepfunctionsSubmitJobLambdaf528cc3d736c6eb505b3c6d8e2c5970B6E0C_D048F06D.output_path}",
+        "function_name": "12345678-1234-stepfionsSubmitJobLambda",
+        "handler": "index.handler",
+        "memory_size": 128,
+        "role": "${aws_iam_role.SubmitJobLambda_ServiceRole_C8EC1F86.arn}",
+        "runtime": "nodejs18.x",
+        "source_code_hash": "${data.archive_file.SubmitJobLambda_stepfunctionsSubmitJobLambdaf528cc3d736c6eb505b3c6d8e2c5970B6E0C_D048F06D.output_base64sha256}",
+        "tags": {
+          "Name": "test-SubmitJobLambda",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        },
+        "timeout": 3,
+        "tracing_config": {
+          "mode": "Active"
+        }
+      }
+    },
+    "aws_sfn_state_machine": {
+      "Pipeline_C660917D": {
+        "//": {
+          "metadata": {
+            "path": "stepfunctions/Pipeline/Resource",
+            "uniqueId": "Pipeline_C660917D"
+          }
+        },
+        "definition": "{\"StartAt\":\"SubmitJob\",\"States\":{\"SubmitJob\":{\"Next\":\"CheckJobState\",\"Retry\":[{\"ErrorEquals\":[\"Lambda.ClientExecutionTimeoutException\",\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"OutputPath\":\"$.Payload\",\"Resource\":\"arn:${data.aws_partition.Partitition.partition}:states:::lambda:invoke\",\"Parameters\":{\"FunctionName\":\"${aws_lambda_function.SubmitJobLambda_4B842AEF.arn}\",\"Payload\":{\"execId.$\":\"$$.Execution.Id\",\"execInput.$\":\"$$.Execution.Input\",\"execName.$\":\"$$.Execution.Name\"}}},\"CheckJobState\":{\"Next\":\"JobComplete?\",\"Retry\":[{\"ErrorEquals\":[\"Lambda.ClientExecutionTimeoutException\",\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"ResultSelector\":{\"status.$\":\"$.Payload.status\"},\"Resource\":\"arn:${data.aws_partition.Partitition.partition}:states:::lambda:invoke\",\"Parameters\":{\"FunctionName\":\"${aws_lambda_function.CheckStatusLambda_66E1DC5D.arn}\",\"Payload.$\":\"$\"}},\"JobComplete?\":{\"Type\":\"Choice\",\"Choices\":[{\"Variable\":\"$.status\",\"StringEquals\":\"FAILED\",\"Next\":\"JobFailed\"},{\"Variable\":\"$.status\",\"StringEquals\":\"SUCCEEDED\",\"Next\":\"FinalStep\"}]},\"JobFailed\":{\"Type\":\"Fail\",\"Error\":\"Received a status that was not 200\",\"Cause\":\"Job Failed\"},\"FinalStep\":{\"Type\":\"Pass\",\"End\":true}},\"TimeoutSeconds\":30}",
+        "depends_on": [
+          "data.aws_iam_policy_document.Pipeline_Role_AssumeRolePolicy_40F64AA2",
+          "aws_iam_role.Pipeline_Role_D68726F7",
+          "data.aws_iam_policy_document.Pipeline_Role_DefaultPolicy_E1A72B48",
+          "aws_iam_role_policy.Pipeline_Role_DefaultPolicy_ResourceRoles0_355E985C"
+        ],
+        "name_prefix": "12345678-1234-stepfunctionsPipeline",
+        "role_arn": "${aws_iam_role.Pipeline_Role_D68726F7.arn}",
+        "tags": {
+          "Name": "test-Pipeline",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "local": {
+        "path": "stepfunctions.tfstate"
+      }
+    },
+    "required_providers": {
+      "archive": {
+        "source": "hashicorp/archive",
+        "version": "2.7.1"
+      },
+      "aws": {
+        "source": "aws",
+        "version": "6.25.0"
+      }
+    }
+  }
+}

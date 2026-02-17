@@ -1,0 +1,8 @@
+{
+  "language": "typescript",
+  "app": "bun run main.ts",
+  "projectId": "oxid-fixtures-foreach",
+  "sendCrashReports": false,
+  "terraformProviders": [],
+  "codeMakerOutput": "imports"
+}
