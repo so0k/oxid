@@ -1,0 +1,16 @@
+{
+  "stacks": {
+    "foreach": {
+      "annotations": [
+      ],
+      "constructPath": "foreach",
+      "dependencies": [
+      ],
+      "name": "foreach",
+      "stackMetadataPath": "stacks/foreach/metadata.json",
+      "synthesizedStackPath": "stacks/foreach/cdk.tf.json",
+      "workingDirectory": "stacks/foreach"
+    }
+  },
+  "version": "0.20.12"
+}

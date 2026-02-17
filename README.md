@@ -4,7 +4,7 @@
 
 A standalone infrastructure-as-code engine. Open-source alternative to Terraform.
 
-Oxid parses `.tf` (HCL) files natively and communicates directly with Terraform providers via gRPC — no `terraform` or `tofu` binary required.
+Oxid parses `.tf` (HCL) and `.tf.json` files natively and communicates directly with Terraform providers via gRPC — no `terraform` or `tofu` binary required.
 
 ## Why Oxid?
 
@@ -13,14 +13,15 @@ Oxid parses `.tf` (HCL) files natively and communicates directly with Terraform 
 | **Execution** | Wave-based (batch) | Event-driven per-resource |
 | **Parallelism** | Resources in same wave wait for slowest | Dependents start the instant their deps complete |
 | **State** | JSON file or remote backend | SQLite (local) / PostgreSQL (teams) |
-| **Config** | HCL only | HCL + YAML |
+| **Config** | HCL only | HCL + JSON + YAML |
 | **Provider protocol** | Wraps binary / shared lib | Direct gRPC (tfplugin5/6) |
 | **Queryable state** | `terraform show` | Full SQL: `oxid query "SELECT * FROM resources"` |
 | **License** | BSL / MPL | Apache-2.0 |
 
 ## Features
 
-- Native HCL (.tf) parsing — reads your existing Terraform configs
+- Native HCL (.tf) and JSON (.tf.json) parsing — reads your existing Terraform configs
+- Mixed-format directories — `.tf` and `.tf.json` files in the same directory are merged automatically
 - Direct gRPC communication with all Terraform providers (AWS, GCP, Azure, etc.)
 - Event-driven DAG walker with per-resource parallelism
 - Real-time progress with elapsed time tracking
@@ -164,7 +165,7 @@ Apply complete! Resources: 2 added, 0 changed, 0 destroyed. Total time: 4s.
 
 ## How It Works
 
-1. **Parse** — Reads `.tf` files using `hcl-rs`, extracts resources, data sources, variables, outputs, and providers
+1. **Parse** — Reads `.tf` (HCL) and `.tf.json` (JSON) files, extracts resources, data sources, variables, outputs, and providers. Mixed-format directories are merged.
 2. **Build DAG** — Constructs a dependency graph from explicit `depends_on` and implicit expression references
 3. **Start Providers** — Downloads provider binaries from registry.terraform.io, starts them as subprocesses, connects via gRPC
 4. **Plan** — Calls `PlanResourceChange` on each provider to compute diffs
@@ -174,9 +175,9 @@ Apply complete! Resources: 2 added, 0 changed, 0 destroyed. Total time: 4s.
 ## Architecture
 
 ```
-                    .tf files
+               .tf / .tf.json files
                         |
-                   [HCL Parser]
+              [HCL + JSON Parser]
                         |
                  [WorkspaceConfig]
                         |
@@ -203,7 +204,7 @@ cargo build --release
 
 Oxid is in beta and help is appreciated! Here's how you can contribute:
 
-- **Test with your `.tf` configs** — Try `oxid plan` against your existing Terraform projects and report what works/breaks
+- **Test with your `.tf` / `.tf.json` configs** — Try `oxid plan` against your existing Terraform projects and report what works/breaks
 - **Report issues** — File bugs at [github.com/ops0-ai/oxid/issues](https://github.com/ops0-ai/oxid/issues)
 - **Provider coverage** — Test with different providers (GCP, Azure, Cloudflare, etc.) beyond AWS
 - **Code contributions** — PRs welcome. See the architecture section above for how things fit together

@@ -1,0 +1,368 @@
+{
+  "//": {
+    "metadata": {
+      "backend": "local",
+      "stackName": "encryption",
+      "version": "0.21.0"
+    },
+    "outputs": {
+      "encryption": {
+        "aliased_key_alias": "aliased_key_alias",
+        "asymmetric_key": "asymmetric_key",
+        "encryption_role": "encryption_role",
+        "master_alias": "master_alias",
+        "master_key": "master_key"
+      }
+    }
+  },
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "//": {
+          "metadata": {
+            "path": "encryption/CallerIdentity",
+            "uniqueId": "CallerIdentity"
+          }
+        },
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "AliasedKey_Policy_E9B18AF2": {
+        "//": {
+          "metadata": {
+            "path": "encryption/AliasedKey/Policy/Resource",
+            "uniqueId": "AliasedKey_Policy_E9B18AF2"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "kms:*"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:root"
+                ],
+                "type": "AWS"
+              }
+            ],
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      },
+      "AsymmetricKey_Policy_C7D52E4F": {
+        "//": {
+          "metadata": {
+            "path": "encryption/AsymmetricKey/Policy/Resource",
+            "uniqueId": "AsymmetricKey_Policy_C7D52E4F"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "kms:*"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:root"
+                ],
+                "type": "AWS"
+              }
+            ],
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      },
+      "EncryptionRole_AssumeRolePolicy_26162A75": {
+        "//": {
+          "metadata": {
+            "path": "encryption/EncryptionRole/AssumeRolePolicy/Resource",
+            "uniqueId": "EncryptionRole_AssumeRolePolicy_26162A75"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "${data.aws_service_principal.aws_svcp_default_region_lambda.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "EncryptionRole_DefaultPolicy_DB1CABBD": {
+        "//": {
+          "metadata": {
+            "path": "encryption/EncryptionRole/DefaultPolicy/Resource/Resource",
+            "uniqueId": "EncryptionRole_DefaultPolicy_DB1CABBD"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "kms:Decrypt"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "${aws_kms_key.MasterKey_0175C9E2.arn}"
+            ]
+          },
+          {
+            "actions": [
+              "kms:Encrypt",
+              "kms:ReEncrypt*",
+              "kms:GenerateDataKey*"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "${aws_kms_key.MasterKey_0175C9E2.arn}"
+            ]
+          }
+        ]
+      },
+      "MasterKey_Policy_B416FB6D": {
+        "//": {
+          "metadata": {
+            "path": "encryption/MasterKey/Policy/Resource",
+            "uniqueId": "MasterKey_Policy_B416FB6D"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "kms:*"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:root"
+                ],
+                "type": "AWS"
+              }
+            ],
+            "resources": [
+              "*"
+            ]
+          },
+          {
+            "actions": [
+              "kms:encrypt"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "${data.aws_caller_identity.CallerIdentity.account_id}"
+                ],
+                "type": "AWS"
+              }
+            ],
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "//": {
+          "metadata": {
+            "path": "encryption/Partitition",
+            "uniqueId": "Partitition"
+          }
+        },
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_lambda": {
+        "//": {
+          "metadata": {
+            "path": "encryption/aws_svcp_default_region_lambda}",
+            "uniqueId": "aws_svcp_default_region_lambda"
+          }
+        },
+        "service_name": "lambda"
+      }
+    }
+  },
+  "output": {
+    "aliased_key_alias": {
+      "value": {
+        "aliasName": "${aws_kms_alias.AliasedKey_Alias_C3F80233.name}",
+        "aliasTargetKey": {
+          "keyArn": "${aws_kms_key.AliasedKey_0BED9A2F.arn}",
+          "keyId": "${aws_kms_key.AliasedKey_0BED9A2F.id}"
+        }
+      }
+    },
+    "asymmetric_key": {
+      "description": "Outputs for test-AsymmetricKey",
+      "value": {
+        "keyArn": "${aws_kms_key.AsymmetricKey_26BBC514.arn}",
+        "keyId": "${aws_kms_key.AsymmetricKey_26BBC514.id}"
+      }
+    },
+    "encryption_role": {
+      "description": "Outputs for test-EncryptionRole",
+      "value": {
+        "arn": "${aws_iam_role.EncryptionRole_96CADEBA.arn}",
+        "name": "${aws_iam_role.EncryptionRole_96CADEBA.name}"
+      }
+    },
+    "master_alias": {
+      "value": {
+        "aliasName": "${aws_kms_alias.MasterKey_Alias_9C01E073.name}",
+        "aliasTargetKey": {
+          "keyArn": "${aws_kms_key.MasterKey_0175C9E2.arn}",
+          "keyId": "${aws_kms_key.MasterKey_0175C9E2.id}"
+        }
+      }
+    },
+    "master_key": {
+      "description": "Outputs for test-MasterKey",
+      "value": {
+        "keyArn": "${aws_kms_key.MasterKey_0175C9E2.arn}",
+        "keyId": "${aws_kms_key.MasterKey_0175C9E2.id}"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_iam_role": {
+      "EncryptionRole_96CADEBA": {
+        "//": {
+          "metadata": {
+            "path": "encryption/EncryptionRole/Resource",
+            "uniqueId": "EncryptionRole_96CADEBA"
+          }
+        },
+        "assume_role_policy": "${data.aws_iam_policy_document.EncryptionRole_AssumeRolePolicy_26162A75.json}",
+        "name_prefix": "12345678-1234-encryptionEncryptionRole",
+        "tags": {
+          "Name": "test-EncryptionRole",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      }
+    },
+    "aws_iam_role_policy": {
+      "EncryptionRole_DefaultPolicy_ResourceRoles0_349F0449": {
+        "//": {
+          "metadata": {
+            "path": "encryption/EncryptionRole/DefaultPolicy/ResourceRoles0",
+            "uniqueId": "EncryptionRole_DefaultPolicy_ResourceRoles0_349F0449"
+          }
+        },
+        "name": "encryptionEncryptionRoleDefaultPolicyFC18C0D1",
+        "policy": "${data.aws_iam_policy_document.EncryptionRole_DefaultPolicy_DB1CABBD.json}",
+        "role": "${aws_iam_role.EncryptionRole_96CADEBA.name}"
+      }
+    },
+    "aws_kms_alias": {
+      "AliasedKey_Alias_C3F80233": {
+        "//": {
+          "metadata": {
+            "path": "encryption/AliasedKey/Alias/Resource",
+            "uniqueId": "AliasedKey_Alias_C3F80233"
+          }
+        },
+        "name": "alias/OxidService${data.aws_caller_identity.CallerIdentity.account_id}",
+        "target_key_id": "${aws_kms_key.AliasedKey_0BED9A2F.arn}"
+      },
+      "MasterKey_Alias_9C01E073": {
+        "//": {
+          "metadata": {
+            "path": "encryption/MasterKey/Alias/Resource",
+            "uniqueId": "MasterKey_Alias_9C01E073"
+          }
+        },
+        "name": "alias/oxid-master",
+        "target_key_id": "${aws_kms_key.MasterKey_0175C9E2.arn}"
+      }
+    },
+    "aws_kms_key": {
+      "AliasedKey_0BED9A2F": {
+        "//": {
+          "metadata": {
+            "path": "encryption/AliasedKey/Resource",
+            "uniqueId": "AliasedKey_0BED9A2F"
+          }
+        },
+        "policy": "${data.aws_iam_policy_document.AliasedKey_Policy_E9B18AF2.json}",
+        "tags": {
+          "Name": "test-AliasedKey",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      },
+      "AsymmetricKey_26BBC514": {
+        "//": {
+          "metadata": {
+            "path": "encryption/AsymmetricKey/Resource",
+            "uniqueId": "AsymmetricKey_26BBC514"
+          }
+        },
+        "customer_master_key_spec": "ECC_NIST_P256",
+        "key_usage": "SIGN_VERIFY",
+        "policy": "${data.aws_iam_policy_document.AsymmetricKey_Policy_C7D52E4F.json}",
+        "tags": {
+          "Name": "test-AsymmetricKey",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      },
+      "MasterKey_0175C9E2": {
+        "//": {
+          "metadata": {
+            "path": "encryption/MasterKey/Resource",
+            "uniqueId": "MasterKey_0175C9E2"
+          }
+        },
+        "policy": "${data.aws_iam_policy_document.MasterKey_Policy_B416FB6D.json}",
+        "tags": {
+          "Name": "test-MasterKey",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "local": {
+        "path": "encryption.tfstate"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "6.25.0"
+      }
+    }
+  }
+}

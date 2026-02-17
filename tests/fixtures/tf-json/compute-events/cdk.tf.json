@@ -1,0 +1,507 @@
+{
+  "//": {
+    "metadata": {
+      "backend": "local",
+      "stackName": "compute-events",
+      "version": "0.21.0"
+    },
+    "outputs": {
+      "compute-events": {
+        "EventSourceMappingArn": "EventSourceMappingArn",
+        "api_handler": "api_handler",
+        "dlq": "dlq",
+        "processing_queue": "processing_queue",
+        "processor": "processor"
+      }
+    }
+  },
+  "data": {
+    "archive_file": {
+      "ApiHandler_compute-eventsApiHandler5dfc9283cdccba0edfc0947031ce0934F3EF2F7D_A05BFE6E": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/ApiHandler/compute-eventsApiHandler5dfc9283cdccba0edfc0947031ce0934F3EF2F7D",
+            "uniqueId": "ApiHandler_compute-eventsApiHandler5dfc9283cdccba0edfc0947031ce0934F3EF2F7D_A05BFE6E"
+          }
+        },
+        "output_path": "${path.root}/.archive_files/compute-eventsApiHandler5dfc9283cdccba0edfc0947031ce0934F3EF2F7D.zip",
+        "provider": "archive",
+        "source_content": "exports.handler = async (event) => ({ statusCode: 200, body: JSON.stringify({ message: \"ok\" }) });",
+        "source_content_filename": "index.js",
+        "type": "zip"
+      },
+      "Processor_compute-eventsProcessor2a981bab32893572238b9e3afd168bfc6500437A_0D9FB05F": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/Processor/compute-eventsProcessor2a981bab32893572238b9e3afd168bfc6500437A",
+            "uniqueId": "Processor_compute-eventsProcessor2a981bab32893572238b9e3afd168bfc6500437A_0D9FB05F"
+          }
+        },
+        "output_path": "${path.root}/.archive_files/compute-eventsProcessor2a981bab32893572238b9e3afd168bfc6500437A.zip",
+        "provider": "archive",
+        "source_content": "exports.handler = async (event) => { console.log(JSON.stringify(event)); return { statusCode: 200 }; }",
+        "source_content_filename": "index.js",
+        "type": "zip"
+      }
+    },
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/CallerIdentity",
+            "uniqueId": "CallerIdentity"
+          }
+        },
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "ApiHandler_ServiceRole_AssumeRolePolicy_2CD746CE": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/ApiHandler/ServiceRole/AssumeRolePolicy/Resource",
+            "uniqueId": "ApiHandler_ServiceRole_AssumeRolePolicy_2CD746CE"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "${data.aws_service_principal.aws_svcp_default_region_lambda.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "ApiHandler_ServiceRole_DefaultPolicy_270E9365": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/ApiHandler/ServiceRole/DefaultPolicy/Resource/Resource",
+            "uniqueId": "ApiHandler_ServiceRole_DefaultPolicy_270E9365"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "xray:PutTraceSegments",
+              "xray:PutTelemetryRecords"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ]
+          },
+          {
+            "actions": [
+              "sqs:SendMessage",
+              "sqs:GetQueueAttributes",
+              "sqs:GetQueueUrl"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "${aws_sqs_queue.ProcessingQueue_6DC600C3.arn}"
+            ]
+          }
+        ]
+      },
+      "Processor_ServiceRole_AssumeRolePolicy_79439FDB": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/Processor/ServiceRole/AssumeRolePolicy/Resource",
+            "uniqueId": "Processor_ServiceRole_AssumeRolePolicy_79439FDB"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "${data.aws_service_principal.aws_svcp_default_region_lambda.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "Processor_ServiceRole_DefaultPolicy_5D8D5C66": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/Processor/ServiceRole/DefaultPolicy/Resource/Resource",
+            "uniqueId": "Processor_ServiceRole_DefaultPolicy_5D8D5C66"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "xray:PutTraceSegments",
+              "xray:PutTelemetryRecords"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ]
+          },
+          {
+            "actions": [
+              "sqs:ReceiveMessage",
+              "sqs:ChangeMessageVisibility",
+              "sqs:GetQueueUrl",
+              "sqs:DeleteMessage",
+              "sqs:GetQueueAttributes"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "${aws_sqs_queue.ProcessingQueue_6DC600C3.arn}"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/Partitition",
+            "uniqueId": "Partitition"
+          }
+        },
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_lambda": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/aws_svcp_default_region_lambda}",
+            "uniqueId": "aws_svcp_default_region_lambda"
+          }
+        },
+        "service_name": "lambda"
+      }
+    }
+  },
+  "output": {
+    "EventSourceMappingArn": {
+      "value": "arn:${data.aws_partition.Partitition.partition}:lambda:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:event-source-mapping:${aws_lambda_event_source_mapping.Processor_SqsEventSourcecompute-eventsProcessingQueue90879FDE_CC2AFDBF.uuid}"
+    },
+    "api_handler": {
+      "description": "Outputs for test-ApiHandler",
+      "value": {
+        "arn": "${aws_lambda_function.ApiHandler_5E7490E8.arn}",
+        "defaultSecurityGroup": null,
+        "name": "${aws_lambda_function.ApiHandler_5E7490E8.function_name}",
+        "roleArn": "${aws_iam_role.ApiHandler_ServiceRole_592E70E9.arn}",
+        "url": null
+      }
+    },
+    "dlq": {
+      "description": "Outputs for test-DLQ",
+      "value": {
+        "arn": "${aws_sqs_queue.DLQ_581697C4.arn}",
+        "name": "${aws_sqs_queue.DLQ_581697C4.name}",
+        "url": "${aws_sqs_queue.DLQ_581697C4.url}"
+      }
+    },
+    "processing_queue": {
+      "description": "Outputs for test-ProcessingQueue",
+      "value": {
+        "arn": "${aws_sqs_queue.ProcessingQueue_6DC600C3.arn}",
+        "name": "${aws_sqs_queue.ProcessingQueue_6DC600C3.name}",
+        "url": "${aws_sqs_queue.ProcessingQueue_6DC600C3.url}"
+      }
+    },
+    "processor": {
+      "description": "Outputs for test-Processor",
+      "value": {
+        "arn": "${aws_lambda_function.Processor_60228016.arn}",
+        "defaultSecurityGroup": null,
+        "name": "${aws_lambda_function.Processor_60228016.function_name}",
+        "roleArn": "${aws_iam_role.Processor_ServiceRole_5039D372.arn}",
+        "url": null
+      }
+    }
+  },
+  "provider": {
+    "archive": [
+      {
+      }
+    ],
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudwatch_log_group": {
+      "ApiHandler_LogGroup_0D20E157": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/ApiHandler/LogGroup",
+            "uniqueId": "ApiHandler_LogGroup_0D20E157"
+          }
+        },
+        "name": "/aws/lambda/12345678-1234-computeeventsApiHandler",
+        "retention_in_days": 7,
+        "tags": {
+          "Name": "test-ApiHandler",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      },
+      "Processor_LogGroup_B3034378": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/Processor/LogGroup",
+            "uniqueId": "Processor_LogGroup_B3034378"
+          }
+        },
+        "name": "/aws/lambda/12345678-1234-computeeventsProcessor",
+        "retention_in_days": 7,
+        "tags": {
+          "Name": "test-Processor",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      }
+    },
+    "aws_iam_role": {
+      "ApiHandler_ServiceRole_592E70E9": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/ApiHandler/ServiceRole/Resource",
+            "uniqueId": "ApiHandler_ServiceRole_592E70E9"
+          }
+        },
+        "assume_role_policy": "${data.aws_iam_policy_document.ApiHandler_ServiceRole_AssumeRolePolicy_2CD746CE.json}",
+        "name_prefix": "12345678-1234-compuiHandlerServiceRole",
+        "tags": {
+          "Name": "test-ApiHandler",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      },
+      "Processor_ServiceRole_5039D372": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/Processor/ServiceRole/Resource",
+            "uniqueId": "Processor_ServiceRole_5039D372"
+          }
+        },
+        "assume_role_policy": "${data.aws_iam_policy_document.Processor_ServiceRole_AssumeRolePolicy_79439FDB.json}",
+        "name_prefix": "12345678-1234-compurocessorServiceRole",
+        "tags": {
+          "Name": "test-Processor",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      }
+    },
+    "aws_iam_role_policy": {
+      "ApiHandler_ServiceRole_DefaultPolicy_ResourceRoles0_F556B013": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/ApiHandler/ServiceRole/DefaultPolicy/ResourceRoles0",
+            "uniqueId": "ApiHandler_ServiceRole_DefaultPolicy_ResourceRoles0_F556B013"
+          }
+        },
+        "name": "computeeventsApiHandlerServiceRoleDefaultPolicy6DFD6358",
+        "policy": "${data.aws_iam_policy_document.ApiHandler_ServiceRole_DefaultPolicy_270E9365.json}",
+        "role": "${aws_iam_role.ApiHandler_ServiceRole_592E70E9.name}"
+      },
+      "Processor_ServiceRole_DefaultPolicy_ResourceRoles0_5D5092B3": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/Processor/ServiceRole/DefaultPolicy/ResourceRoles0",
+            "uniqueId": "Processor_ServiceRole_DefaultPolicy_ResourceRoles0_5D5092B3"
+          }
+        },
+        "name": "computeeventsProcessorServiceRoleDefaultPolicyC9303B02",
+        "policy": "${data.aws_iam_policy_document.Processor_ServiceRole_DefaultPolicy_5D8D5C66.json}",
+        "role": "${aws_iam_role.Processor_ServiceRole_5039D372.name}"
+      }
+    },
+    "aws_iam_role_policy_attachment": {
+      "ApiHandler_AWSLambdaBasicExecutionRole_Roles0_B1904A74": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/ApiHandler/AWSLambdaBasicExecutionRole/Roles0",
+            "uniqueId": "ApiHandler_AWSLambdaBasicExecutionRole_Roles0_B1904A74"
+          }
+        },
+        "policy_arn": "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+        "role": "${aws_iam_role.ApiHandler_ServiceRole_592E70E9.name}"
+      },
+      "Processor_AWSLambdaBasicExecutionRole_Roles0_2669F017": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/Processor/AWSLambdaBasicExecutionRole/Roles0",
+            "uniqueId": "Processor_AWSLambdaBasicExecutionRole_Roles0_2669F017"
+          }
+        },
+        "policy_arn": "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+        "role": "${aws_iam_role.Processor_ServiceRole_5039D372.name}"
+      }
+    },
+    "aws_lambda_event_source_mapping": {
+      "Processor_SqsEventSourcecompute-eventsProcessingQueue90879FDE_CC2AFDBF": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/Processor/SqsEventSource:compute-eventsProcessingQueue90879FDE/Resource",
+            "uniqueId": "Processor_SqsEventSourcecompute-eventsProcessingQueue90879FDE_CC2AFDBF"
+          }
+        },
+        "batch_size": 5,
+        "event_source_arn": "${aws_sqs_queue.ProcessingQueue_6DC600C3.arn}",
+        "function_name": "${aws_lambda_function.Processor_60228016.function_name}",
+        "tags": {
+          "Name": "test-Processor",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      }
+    },
+    "aws_lambda_function": {
+      "ApiHandler_5E7490E8": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/ApiHandler/Resource",
+            "uniqueId": "ApiHandler_5E7490E8"
+          }
+        },
+        "architectures": [
+          "x86_64"
+        ],
+        "depends_on": [
+          "aws_cloudwatch_log_group.ApiHandler_LogGroup_0D20E157",
+          "data.aws_iam_policy_document.ApiHandler_ServiceRole_AssumeRolePolicy_2CD746CE",
+          "aws_iam_role.ApiHandler_ServiceRole_592E70E9",
+          "data.aws_iam_policy_document.ApiHandler_ServiceRole_DefaultPolicy_270E9365",
+          "aws_iam_role_policy.ApiHandler_ServiceRole_DefaultPolicy_ResourceRoles0_F556B013"
+        ],
+        "environment": {
+          "variables": {
+          }
+        },
+        "filename": "${data.archive_file.ApiHandler_compute-eventsApiHandler5dfc9283cdccba0edfc0947031ce0934F3EF2F7D_A05BFE6E.output_path}",
+        "function_name": "12345678-1234-computeeventsApiHandler",
+        "handler": "index.handler",
+        "memory_size": 128,
+        "role": "${aws_iam_role.ApiHandler_ServiceRole_592E70E9.arn}",
+        "runtime": "nodejs18.x",
+        "source_code_hash": "${data.archive_file.ApiHandler_compute-eventsApiHandler5dfc9283cdccba0edfc0947031ce0934F3EF2F7D_A05BFE6E.output_base64sha256}",
+        "tags": {
+          "Name": "test-ApiHandler",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        },
+        "timeout": 3,
+        "tracing_config": {
+          "mode": "Active"
+        }
+      },
+      "Processor_60228016": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/Processor/Resource",
+            "uniqueId": "Processor_60228016"
+          }
+        },
+        "architectures": [
+          "x86_64"
+        ],
+        "depends_on": [
+          "aws_cloudwatch_log_group.Processor_LogGroup_B3034378",
+          "data.aws_iam_policy_document.Processor_ServiceRole_AssumeRolePolicy_79439FDB",
+          "aws_iam_role.Processor_ServiceRole_5039D372",
+          "data.aws_iam_policy_document.Processor_ServiceRole_DefaultPolicy_5D8D5C66",
+          "aws_iam_role_policy.Processor_ServiceRole_DefaultPolicy_ResourceRoles0_5D5092B3"
+        ],
+        "environment": {
+          "variables": {
+          }
+        },
+        "filename": "${data.archive_file.Processor_compute-eventsProcessor2a981bab32893572238b9e3afd168bfc6500437A_0D9FB05F.output_path}",
+        "function_name": "12345678-1234-computeeventsProcessor",
+        "handler": "index.handler",
+        "logging_config": {
+          "log_format": "JSON",
+          "log_group": "${aws_cloudwatch_log_group.Processor_LogGroup_B3034378.name}"
+        },
+        "memory_size": 128,
+        "role": "${aws_iam_role.Processor_ServiceRole_5039D372.arn}",
+        "runtime": "nodejs18.x",
+        "source_code_hash": "${data.archive_file.Processor_compute-eventsProcessor2a981bab32893572238b9e3afd168bfc6500437A_0D9FB05F.output_base64sha256}",
+        "tags": {
+          "Name": "test-Processor",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        },
+        "timeout": 3,
+        "tracing_config": {
+          "mode": "Active"
+        }
+      }
+    },
+    "aws_sqs_queue": {
+      "DLQ_581697C4": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/DLQ/Resource",
+            "uniqueId": "DLQ_581697C4"
+          }
+        },
+        "name_prefix": "12345678-1234-compute-eventsDLQ",
+        "tags": {
+          "Name": "test-DLQ",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      },
+      "ProcessingQueue_6DC600C3": {
+        "//": {
+          "metadata": {
+            "path": "compute-events/ProcessingQueue/Resource",
+            "uniqueId": "ProcessingQueue_6DC600C3"
+          }
+        },
+        "name_prefix": "12345678-1234-compute-eventsProcessingQueue",
+        "redrive_policy": "{\"deadLetterTargetArn\":\"${aws_sqs_queue.DLQ_581697C4.arn}\",\"maxReceiveCount\":3}",
+        "tags": {
+          "Name": "test-ProcessingQueue",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "local": {
+        "path": "/Users/vincentdesmet/cdktn/oxid/tools/cdktf-fixtures/packages/compute-events/terraform.compute-events.tfstate"
+      }
+    },
+    "required_providers": {
+      "archive": {
+        "source": "hashicorp/archive",
+        "version": "2.7.1"
+      },
+      "aws": {
+        "source": "aws",
+        "version": "6.25.0"
+      }
+    }
+  }
+}

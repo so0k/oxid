@@ -1,0 +1,15 @@
+{
+  "name": "@oxid-fixtures/iam-grants",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "cdktf": "^0.21.0",
+    "constructs": "^10.4.2",
+    "@cdktf/provider-aws": "^21.22.0",
+    "@aws-cdk/region-info": "^2.233.0",
+    "terraconstructs": "^0.2.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

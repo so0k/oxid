@@ -1,0 +1,417 @@
+{
+  "//": {
+    "metadata": {
+      "backend": "local",
+      "stackName": "storage-autoscaling",
+      "version": "0.21.0"
+    },
+    "outputs": {
+      "storage-autoscaling": {
+        "StateTableArn": "StateTableArn",
+        "StateTableName": "StateTableName",
+        "grant_table": "grant_table",
+        "policy_table": "policy_table",
+        "test_role": "test_role"
+      }
+    }
+  },
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/CallerIdentity",
+            "uniqueId": "CallerIdentity"
+          }
+        },
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "GrantTable_Policy_E3C1498E": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/GrantTable/Policy/Resource",
+            "uniqueId": "GrantTable_Policy_E3C1498E"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "dynamodb:BatchGetItem",
+              "dynamodb:Query",
+              "dynamodb:GetItem",
+              "dynamodb:Scan",
+              "dynamodb:ConditionCheckItem",
+              "dynamodb:DescribeTable"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:root"
+                ],
+                "type": "AWS"
+              }
+            ],
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      },
+      "ResourcePolicy_7446AF09": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/ResourcePolicy/Resource",
+            "uniqueId": "ResourcePolicy_7446AF09"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "dynamodb:*"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:root"
+                ],
+                "type": "AWS"
+              }
+            ],
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      },
+      "TestRole_AssumeRolePolicy_89BE1645": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/TestRole/AssumeRolePolicy/Resource",
+            "uniqueId": "TestRole_AssumeRolePolicy_89BE1645"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:root"
+                ],
+                "type": "AWS"
+              }
+            ]
+          }
+        ]
+      },
+      "TestRole_DefaultPolicy_CB446A35": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/TestRole/DefaultPolicy/Resource/Resource",
+            "uniqueId": "TestRole_DefaultPolicy_CB446A35"
+          }
+        },
+        "statement": [
+          {
+            "actions": [
+              "dynamodb:BatchGetItem",
+              "dynamodb:Query",
+              "dynamodb:GetItem",
+              "dynamodb:Scan",
+              "dynamodb:ConditionCheckItem",
+              "dynamodb:BatchWriteItem",
+              "dynamodb:PutItem",
+              "dynamodb:UpdateItem",
+              "dynamodb:DeleteItem",
+              "dynamodb:DescribeTable"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "${aws_dynamodb_table.PolicyTable_E50BDB2B.arn}"
+            ]
+          },
+          {
+            "actions": [
+              "dynamodb:GetRecords",
+              "dynamodb:GetShardIterator"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "${aws_dynamodb_table.PolicyTable_E50BDB2B.arn}"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/Partitition",
+            "uniqueId": "Partitition"
+          }
+        },
+        "provider": "aws"
+      }
+    }
+  },
+  "output": {
+    "StateTableArn": {
+      "value": "${aws_dynamodb_table.StateTable_9728C7E5.arn}"
+    },
+    "StateTableName": {
+      "value": "${aws_dynamodb_table.StateTable_9728C7E5.name}"
+    },
+    "grant_table": {
+      "description": "Outputs for test-GrantTable",
+      "value": {
+        "tableArn": "${aws_dynamodb_table.GrantTable_13160A8B.arn}",
+        "tableName": "${aws_dynamodb_table.GrantTable_13160A8B.name}"
+      }
+    },
+    "policy_table": {
+      "description": "Outputs for test-PolicyTable",
+      "value": {
+        "tableArn": "${aws_dynamodb_table.PolicyTable_E50BDB2B.arn}",
+        "tableName": "${aws_dynamodb_table.PolicyTable_E50BDB2B.name}"
+      }
+    },
+    "test_role": {
+      "description": "Outputs for test-TestRole",
+      "value": {
+        "arn": "${aws_iam_role.TestRole_6C9272DF.arn}",
+        "name": "${aws_iam_role.TestRole_6C9272DF.name}"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_appautoscaling_policy": {
+      "StateTable_ReadScaling_Target_Tracking_F6DC79C2": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/StateTable/ReadScaling/Target/Tracking/Resource",
+            "uniqueId": "StateTable_ReadScaling_Target_Tracking_F6DC79C2"
+          }
+        },
+        "name": "test-Tracking",
+        "policy_type": "TargetTrackingScaling",
+        "resource_id": "table/${aws_dynamodb_table.StateTable_9728C7E5.name}",
+        "scalable_dimension": "dynamodb:table:ReadCapacityUnits",
+        "service_namespace": "dynamodb",
+        "target_tracking_scaling_policy_configuration": {
+          "predefined_metric_specification": {
+            "predefined_metric_type": "DynamoDBReadCapacityUtilization"
+          },
+          "target_value": 30
+        }
+      }
+    },
+    "aws_appautoscaling_scheduled_action": {
+      "StateTable_ReadScaling_Target_ScaleDownNight_64ED4C81": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/StateTable/ReadScaling/Target/ScaleDownNight",
+            "uniqueId": "StateTable_ReadScaling_Target_ScaleDownNight_64ED4C81"
+          }
+        },
+        "name": "ScaleDownNight",
+        "resource_id": "table/${aws_dynamodb_table.StateTable_9728C7E5.name}",
+        "scalable_dimension": "dynamodb:table:ReadCapacityUnits",
+        "scalable_target_action": {
+          "max_capacity": "3"
+        },
+        "schedule": "cron(0 20 * * ? *)",
+        "service_namespace": "dynamodb"
+      },
+      "StateTable_ReadScaling_Target_ScaleUpMorning_A541B80D": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/StateTable/ReadScaling/Target/ScaleUpMorning",
+            "uniqueId": "StateTable_ReadScaling_Target_ScaleUpMorning_A541B80D"
+          }
+        },
+        "name": "ScaleUpMorning",
+        "resource_id": "table/${aws_dynamodb_table.StateTable_9728C7E5.name}",
+        "scalable_dimension": "dynamodb:table:ReadCapacityUnits",
+        "scalable_target_action": {
+          "min_capacity": "5"
+        },
+        "schedule": "cron(0 8 * * ? *)",
+        "service_namespace": "dynamodb"
+      }
+    },
+    "aws_appautoscaling_target": {
+      "StateTable_ReadScaling_Target_52B2DE6F": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/StateTable/ReadScaling/Target/Resource",
+            "uniqueId": "StateTable_ReadScaling_Target_52B2DE6F"
+          }
+        },
+        "max_capacity": 10,
+        "min_capacity": 1,
+        "resource_id": "table/${aws_dynamodb_table.StateTable_9728C7E5.name}",
+        "scalable_dimension": "dynamodb:table:ReadCapacityUnits",
+        "service_namespace": "dynamodb",
+        "tags": {
+          "Name": "test-StateTable",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      }
+    },
+    "aws_dynamodb_resource_policy": {
+      "GrantTable_PolicyAttachment_B9C4AA5A": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/GrantTable/PolicyAttachment",
+            "uniqueId": "GrantTable_PolicyAttachment_B9C4AA5A"
+          }
+        },
+        "policy": "${data.aws_iam_policy_document.GrantTable_Policy_E3C1498E.json}",
+        "resource_arn": "${aws_dynamodb_table.GrantTable_13160A8B.arn}"
+      },
+      "PolicyTable_ResourcePolicy_973D7161": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/PolicyTable/ResourcePolicy",
+            "uniqueId": "PolicyTable_ResourcePolicy_973D7161"
+          }
+        },
+        "policy": "${data.aws_iam_policy_document.ResourcePolicy_7446AF09.json}",
+        "resource_arn": "${aws_dynamodb_table.PolicyTable_E50BDB2B.arn}"
+      }
+    },
+    "aws_dynamodb_table": {
+      "GrantTable_13160A8B": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/GrantTable/Resource",
+            "uniqueId": "GrantTable_13160A8B"
+          }
+        },
+        "attribute": [
+          {
+            "name": "PK",
+            "type": "S"
+          }
+        ],
+        "billing_mode": "PROVISIONED",
+        "hash_key": "PK",
+        "name": "storageautoscalingGrantTable8EA08E69",
+        "read_capacity": 5,
+        "tags": {
+          "Name": "test-GrantTable",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        },
+        "write_capacity": 5
+      },
+      "PolicyTable_E50BDB2B": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/PolicyTable/Resource",
+            "uniqueId": "PolicyTable_E50BDB2B"
+          }
+        },
+        "attribute": [
+          {
+            "name": "id",
+            "type": "S"
+          }
+        ],
+        "billing_mode": "PROVISIONED",
+        "hash_key": "id",
+        "name": "storageautoscalingPolicyTable385A0D95",
+        "read_capacity": 5,
+        "tags": {
+          "Name": "test-PolicyTable",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        },
+        "write_capacity": 5
+      },
+      "StateTable_9728C7E5": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/StateTable/Resource",
+            "uniqueId": "StateTable_9728C7E5"
+          }
+        },
+        "attribute": [
+          {
+            "name": "pk",
+            "type": "S"
+          }
+        ],
+        "billing_mode": "PROVISIONED",
+        "hash_key": "pk",
+        "name": "storageautoscalingStateTable24B4C4B7",
+        "read_capacity": 5,
+        "tags": {
+          "Name": "test-StateTable",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        },
+        "write_capacity": 5
+      }
+    },
+    "aws_iam_role": {
+      "TestRole_6C9272DF": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/TestRole/Resource",
+            "uniqueId": "TestRole_6C9272DF"
+          }
+        },
+        "assume_role_policy": "${data.aws_iam_policy_document.TestRole_AssumeRolePolicy_89BE1645.json}",
+        "name_prefix": "12345678-1234-storaautoscalingTestRole",
+        "tags": {
+          "Name": "test-TestRole",
+          "grid:EnvironmentName": "test",
+          "grid:UUID": "12345678-1234"
+        }
+      }
+    },
+    "aws_iam_role_policy": {
+      "TestRole_DefaultPolicy_ResourceRoles0_E270C61E": {
+        "//": {
+          "metadata": {
+            "path": "storage-autoscaling/TestRole/DefaultPolicy/ResourceRoles0",
+            "uniqueId": "TestRole_DefaultPolicy_ResourceRoles0_E270C61E"
+          }
+        },
+        "name": "storageautoscalingTestRoleDefaultPolicy77C2285A",
+        "policy": "${data.aws_iam_policy_document.TestRole_DefaultPolicy_CB446A35.json}",
+        "role": "${aws_iam_role.TestRole_6C9272DF.name}"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "local": {
+        "path": "/Users/vincentdesmet/cdktn/oxid/tools/cdktf-fixtures/packages/storage-autoscaling/terraform.storage-autoscaling.tfstate"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "6.25.0"
+      }
+    }
+  }
+}

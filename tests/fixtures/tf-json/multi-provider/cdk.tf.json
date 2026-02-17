@@ -1,0 +1,345 @@
+{
+  "//": {
+    "metadata": {
+      "backend": "local",
+      "stackName": "multi-provider",
+      "version": "0.20.12"
+    },
+    "outputs": {
+      "multi-provider": {
+        "api_token_value": "api_token_value",
+        "ca_cert_output": "ca_cert_output",
+        "creation_timestamp": "creation_timestamp",
+        "db_password_value": "db_password_value",
+        "project_full_name": "project_full_name",
+        "random_port_output": "random_port_output",
+        "selected_azs": "selected_azs",
+        "server_public_key": "server_public_key"
+      }
+    }
+  },
+  "locals": {
+    "common_tags": {
+      "generated": true,
+      "managed_by": "cdktf",
+      "project": "${var.project_name}"
+    },
+    "environments": [
+      "dev",
+      "staging",
+      "prod"
+    ]
+  },
+  "output": {
+    "api_token_value": {
+      "sensitive": true,
+      "value": "${random_string.api_token.result}"
+    },
+    "ca_cert_output": {
+      "description": "CA certificate in PEM format",
+      "value": "${tls_self_signed_cert.ca_cert.cert_pem}"
+    },
+    "creation_timestamp": {
+      "value": "${time_static.creation_time.rfc3339}"
+    },
+    "db_password_value": {
+      "sensitive": true,
+      "value": "${random_password.db_password.result}"
+    },
+    "project_full_name": {
+      "description": "Full project name with random pet suffix",
+      "value": "${random_pet.project_name_pet.id}"
+    },
+    "random_port_output": {
+      "value": "${random_integer.random_port.result}"
+    },
+    "selected_azs": {
+      "description": "Randomly selected availability zones",
+      "value": "${random_shuffle.az_order.result}"
+    },
+    "server_public_key": {
+      "description": "Server ECDSA public key",
+      "value": "${tls_private_key.server_key.public_key_pem}"
+    }
+  },
+  "provider": {
+    "local": [
+      {
+      }
+    ],
+    "null": [
+      {
+      }
+    ],
+    "random": [
+      {
+      }
+    ],
+    "time": [
+      {
+      }
+    ],
+    "tls": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "local_file": {
+      "ca_cert_pem": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/ca_cert_pem",
+            "uniqueId": "ca_cert_pem"
+          }
+        },
+        "content": "${tls_self_signed_cert.ca_cert.cert_pem}",
+        "filename": "${var.output_dir}/ca.pem"
+      },
+      "config_json": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/config_json",
+            "uniqueId": "config_json"
+          }
+        },
+        "content": "${jsonencode({\"project\" = random_pet.project_name_pet.id, \"port\" = random_integer.random_port.result, \"availability_zones\" = random_shuffle.az_order.result, \"request_id\" = random_uuid.request_id.result, \"created_at\" = time_static.creation_time.rfc3339})}",
+        "depends_on": [
+          "time_sleep.deploy_cooldown"
+        ],
+        "directory_permission": "0755",
+        "file_permission": "0644",
+        "filename": "${var.output_dir}/config.json"
+      }
+    },
+    "local_sensitive_file": {
+      "secrets": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/secrets",
+            "uniqueId": "secrets"
+          }
+        },
+        "content": "${jsonencode({\"api_token\" = random_string.api_token.result, \"db_password\" = random_password.db_password.result, \"ca_private_key\" = tls_private_key.ca_key.private_key_pem, \"server_private_key\" = tls_private_key.server_key.private_key_pem})}",
+        "file_permission": "0600",
+        "filename": "${var.output_dir}/secrets.json"
+      }
+    },
+    "null_resource": {
+      "deployment_gate": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/deployment_gate",
+            "uniqueId": "deployment_gate"
+          }
+        },
+        "depends_on": [
+          "time_sleep.deploy_cooldown"
+        ],
+        "triggers": {
+          "ca_cert_serial": "${tls_self_signed_cert.ca_cert.id}",
+          "config_hash": "${md5(local_file.config_json.content)}",
+          "timestamp": "${time_static.creation_time.rfc3339}"
+        }
+      }
+    },
+    "random_integer": {
+      "random_port": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/random_port",
+            "uniqueId": "random_port"
+          }
+        },
+        "max": 32767,
+        "min": 30000
+      }
+    },
+    "random_password": {
+      "db_password": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/db_password",
+            "uniqueId": "db_password"
+          }
+        },
+        "length": 32,
+        "override_special": "!#$%&*()-_=+[]{}|:<>?",
+        "special": true
+      }
+    },
+    "random_pet": {
+      "project_name_pet": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/project_name_pet",
+            "uniqueId": "project_name_pet"
+          }
+        },
+        "length": 3,
+        "prefix": "${var.project_name}",
+        "separator": "-"
+      }
+    },
+    "random_shuffle": {
+      "az_order": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/az_order",
+            "uniqueId": "az_order"
+          }
+        },
+        "input": [
+          "us-east-1a",
+          "us-east-1b",
+          "us-east-1c",
+          "us-east-1d"
+        ],
+        "result_count": 2
+      }
+    },
+    "random_string": {
+      "api_token": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/api_token",
+            "uniqueId": "api_token"
+          }
+        },
+        "length": 48,
+        "min_lower": 8,
+        "min_numeric": 4,
+        "min_special": 2,
+        "min_upper": 8,
+        "override_special": "!@#$%",
+        "special": true
+      }
+    },
+    "random_uuid": {
+      "request_id": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/request_id",
+            "uniqueId": "request_id"
+          }
+        }
+      }
+    },
+    "time_sleep": {
+      "deploy_cooldown": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/deploy_cooldown",
+            "uniqueId": "deploy_cooldown"
+          }
+        },
+        "create_duration": "10s",
+        "depends_on": [
+          "tls_self_signed_cert.ca_cert"
+        ],
+        "destroy_duration": "5s"
+      }
+    },
+    "time_static": {
+      "creation_time": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/creation_time",
+            "uniqueId": "creation_time"
+          }
+        }
+      }
+    },
+    "tls_private_key": {
+      "ca_key": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/ca_key",
+            "uniqueId": "ca_key"
+          }
+        },
+        "algorithm": "RSA",
+        "rsa_bits": 4096
+      },
+      "server_key": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/server_key",
+            "uniqueId": "server_key"
+          }
+        },
+        "algorithm": "ECDSA",
+        "ecdsa_curve": "P384"
+      }
+    },
+    "tls_self_signed_cert": {
+      "ca_cert": {
+        "//": {
+          "metadata": {
+            "path": "multi-provider/ca_cert",
+            "uniqueId": "ca_cert"
+          }
+        },
+        "allowed_uses": [
+          "cert_signing",
+          "crl_signing"
+        ],
+        "is_ca_certificate": true,
+        "private_key_pem": "${tls_private_key.ca_key.private_key_pem}",
+        "subject": [
+          {
+            "common_name": "${var.project_name}-ca",
+            "organization": "Oxid Test CA"
+          }
+        ],
+        "validity_period_hours": "${var.cert_validity_hours}"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "local": {
+        "path": "/Users/vincentdesmet/cdktn/oxid/tools/cdktf-fixtures/packages/multi-provider/terraform.multi-provider.tfstate"
+      }
+    },
+    "required_providers": {
+      "local": {
+        "source": "hashicorp/local",
+        "version": "2.5.3"
+      },
+      "null": {
+        "source": "null",
+        "version": "3.2.4"
+      },
+      "random": {
+        "source": "hashicorp/random",
+        "version": "3.7.2"
+      },
+      "time": {
+        "source": "hashicorp/time",
+        "version": "0.13.1"
+      },
+      "tls": {
+        "source": "hashicorp/tls",
+        "version": "4.1.0"
+      }
+    }
+  },
+  "variable": {
+    "cert_validity_hours": {
+      "default": 8760,
+      "description": "Validity period for TLS certificates in hours",
+      "type": "number"
+    },
+    "output_dir": {
+      "default": "${path.module}/generated",
+      "description": "Directory to write generated files to",
+      "type": "string"
+    },
+    "project_name": {
+      "default": "oxid-multi-provider",
+      "description": "Name prefix for all resources",
+      "type": "string"
+    }
+  }
+}

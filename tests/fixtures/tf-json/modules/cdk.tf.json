@@ -1,0 +1,174 @@
+{
+  "//": {
+    "metadata": {
+      "backend": "local",
+      "stackName": "modules",
+      "version": "0.20.12"
+    },
+    "outputs": {
+      "modules": {
+        "network_vpc_id": "network_vpc_id",
+        "pet_name": "pet_name",
+        "token": "token"
+      }
+    }
+  },
+  "module": {
+    "app_config": {
+      "//": {
+        "metadata": {
+          "path": "modules/app_config",
+          "uniqueId": "app_config"
+        }
+      },
+      "depends_on": [
+        "module.network_config"
+      ],
+      "name": "${var.project_name}",
+      "network_id": "${module.network_config.vpc_id}",
+      "source": "./modules/app",
+      "subnet_ids": "${module.network_config.subnet_ids}"
+    },
+    "config_templates": {
+      "//": {
+        "metadata": {
+          "path": "modules/config_templates",
+          "uniqueId": "config_templates"
+        }
+      },
+      "base_dir": "${path.module}/templates",
+      "source": "hashicorp/dir/template",
+      "version": "1.0.2"
+    },
+    "network_config": {
+      "//": {
+        "metadata": {
+          "path": "modules/network_config",
+          "uniqueId": "network_config"
+        }
+      },
+      "availability_zones": [
+        "us-east-1a",
+        "us-east-1b",
+        "us-east-1c"
+      ],
+      "cidr_block": "10.0.0.0/16",
+      "environment": "${var.environment}",
+      "project": "${var.project_name}",
+      "source": "./modules/network"
+    }
+  },
+  "output": {
+    "network_vpc_id": {
+      "value": "${module.network_config.vpc_id}"
+    },
+    "pet_name": {
+      "value": "${random_pet.naming_name_B70C75CF.id}"
+    },
+    "token": {
+      "sensitive": true,
+      "value": "${random_string.naming_token_2AB959E8.result}"
+    }
+  },
+  "provider": {
+    "local": [
+      {
+      }
+    ],
+    "null": [
+      {
+      }
+    ],
+    "random": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "local_file": {
+      "manifest": {
+        "//": {
+          "metadata": {
+            "path": "modules/manifest",
+            "uniqueId": "manifest"
+          }
+        },
+        "content": "${jsonencode({\"project\" = var.project_name, \"pet_name\" = random_pet.naming_name_B70C75CF.id, \"token\" = random_string.naming_token_2AB959E8.result, \"config_template_files\" = module.config_templates.files})}",
+        "filename": "${path.module}/output/manifest.json"
+      }
+    },
+    "null_resource": {
+      "provisioner": {
+        "//": {
+          "metadata": {
+            "path": "modules/provisioner",
+            "uniqueId": "provisioner"
+          }
+        },
+        "depends_on": [
+          "module.app_config"
+        ],
+        "triggers": {
+          "app_id": "${module.app_config.app_id}",
+          "manifest": "${local_file.manifest.content}"
+        }
+      }
+    },
+    "random_pet": {
+      "naming_name_B70C75CF": {
+        "//": {
+          "metadata": {
+            "path": "modules/naming/name",
+            "uniqueId": "naming_name_B70C75CF"
+          }
+        },
+        "length": 2,
+        "prefix": "${var.project_name}"
+      }
+    },
+    "random_string": {
+      "naming_token_2AB959E8": {
+        "//": {
+          "metadata": {
+            "path": "modules/naming/token",
+            "uniqueId": "naming_token_2AB959E8"
+          }
+        },
+        "length": 24,
+        "special": false,
+        "upper": false
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "local": {
+        "path": "/Users/vincentdesmet/cdktn/oxid/tools/cdktf-fixtures/packages/modules/terraform.modules.tfstate"
+      }
+    },
+    "required_providers": {
+      "local": {
+        "source": "hashicorp/local",
+        "version": "2.5.3"
+      },
+      "null": {
+        "source": "null",
+        "version": "3.2.4"
+      },
+      "random": {
+        "source": "hashicorp/random",
+        "version": "3.7.2"
+      }
+    }
+  },
+  "variable": {
+    "environment": {
+      "default": "dev",
+      "type": "string"
+    },
+    "project_name": {
+      "default": "oxid-test",
+      "type": "string"
+    }
+  }
+}
