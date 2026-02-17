@@ -1,0 +1,68 @@
+{
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "5.82.2"
+      },
+      "random": {
+        "source": "hashicorp/random",
+        "version": "3.7.2"
+      }
+    }
+  },
+  "provider": {
+    "aws": [{
+      "region": "us-east-1",
+      "default_tags": [{
+        "tags": {
+          "Project": "oxid-e2e-test",
+          "ManagedBy": "oxid"
+        }
+      }]
+    }],
+    "random": [{}]
+  },
+  "variable": {
+    "project_name": {
+      "default": "oxid-e2e-json",
+      "type": "string"
+    }
+  },
+  "data": {
+    "aws_caller_identity": {
+      "current": {}
+    },
+    "aws_region": {
+      "current": {}
+    }
+  },
+  "resource": {
+    "random_pet": {
+      "suffix": {
+        "length": 2
+      }
+    },
+    "aws_ssm_parameter": {
+      "test": {
+        "name": "/oxid-e2e-json/${random_pet.suffix.id}/test-param",
+        "type": "String",
+        "value": "hello-from-oxid-json",
+        "tags": {
+          "Name": "${var.project_name}-${random_pet.suffix.id}"
+        }
+      }
+    }
+  },
+  "output": {
+    "account_id": {
+      "value": "${data.aws_caller_identity.current.account_id}"
+    },
+    "region": {
+      "value": "${data.aws_region.current.name}"
+    },
+    "parameter_name": {
+      "value": "${aws_ssm_parameter.test.name}"
+    }
+  }
+}

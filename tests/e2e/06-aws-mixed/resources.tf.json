@@ -1,0 +1,38 @@
+{
+  "data": {
+    "aws_caller_identity": {
+      "current": {}
+    },
+    "aws_region": {
+      "current": {}
+    }
+  },
+  "resource": {
+    "random_pet": {
+      "suffix": {
+        "length": 2
+      }
+    },
+    "aws_ssm_parameter": {
+      "test": {
+        "name": "/oxid-e2e-mixed/${random_pet.suffix.id}/test-param",
+        "type": "String",
+        "value": "hello-from-oxid-mixed",
+        "tags": {
+          "Name": "${var.project_name}-${random_pet.suffix.id}"
+        }
+      }
+    }
+  },
+  "output": {
+    "account_id": {
+      "value": "${data.aws_caller_identity.current.account_id}"
+    },
+    "region": {
+      "value": "${data.aws_region.current.name}"
+    },
+    "parameter_name": {
+      "value": "${aws_ssm_parameter.test.name}"
+    }
+  }
+}

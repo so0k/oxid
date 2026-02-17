@@ -1,0 +1,39 @@
+{
+  "resource": {
+    "random_pet": {
+      "name": {
+        "length": 2,
+        "prefix": "${var.project_name}",
+        "separator": "-"
+      }
+    },
+    "random_integer": {
+      "port": {
+        "min": 8000,
+        "max": 9000
+      }
+    },
+    "null_resource": {
+      "gate": {
+        "triggers": {
+          "pet_name": "${random_pet.name.id}"
+        }
+      }
+    },
+    "local_file": {
+      "output": {
+        "filename": "${path.module}/generated/result.txt",
+        "content": "project=${var.project_name}\npet=${random_pet.name.id}\nport=${random_integer.port.result}\n",
+        "depends_on": ["null_resource.gate"]
+      }
+    }
+  },
+  "output": {
+    "pet_name": {
+      "value": "${random_pet.name.id}"
+    },
+    "port": {
+      "value": "${random_integer.port.result}"
+    }
+  }
+}
