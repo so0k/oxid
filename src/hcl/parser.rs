@@ -9,7 +9,14 @@ use crate::config::types::*;
 pub fn parse_hcl(content: &str, file_path: &Path) -> Result<WorkspaceConfig> {
     let body: hcl::Body = hcl::from_str(content)
         .with_context(|| format!("Failed to parse HCL in: {}", file_path.display()))?;
+    parse_hcl_body(body, file_path)
+}
 
+/// Parse an hcl::Body into a partial WorkspaceConfig.
+///
+/// This is the core block-iteration logic shared by both HCL and JSON parsers.
+/// The JSON parser builds an `hcl::Body` programmatically and feeds it here.
+pub(crate) fn parse_hcl_body(body: hcl::Body, file_path: &Path) -> Result<WorkspaceConfig> {
     let mut workspace = WorkspaceConfig::default();
     let file_str = file_path.to_string_lossy().to_string();
 

@@ -62,13 +62,16 @@ pub fn load_workspace(path: &Path) -> Result<WorkspaceConfig> {
 
 fn has_tf_files(path: &Path) -> bool {
     if path.is_file() {
-        return path.extension().map(|e| e == "tf").unwrap_or(false);
+        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        return path.extension().map(|e| e == "tf").unwrap_or(false) || name.ends_with(".tf.json");
     }
     if path.is_dir() {
         if let Ok(entries) = std::fs::read_dir(path) {
-            return entries
-                .filter_map(|e| e.ok())
-                .any(|e| e.path().extension().map(|ext| ext == "tf").unwrap_or(false));
+            return entries.filter_map(|e| e.ok()).any(|e| {
+                let p = e.path();
+                let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                p.extension().map(|ext| ext == "tf").unwrap_or(false) || name.ends_with(".tf.json")
+            });
         }
     }
     false

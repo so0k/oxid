@@ -1,3 +1,4 @@
+pub mod json_parser;
 pub mod parser;
 
 use std::collections::HashMap;
@@ -7,26 +8,55 @@ use anyhow::{Context, Result};
 
 use crate::config::types::{Expression, Value, WorkspaceConfig};
 
-/// Parse all .tf files in a directory into a unified WorkspaceConfig.
+/// Parse all .tf and .tf.json files in a directory into a unified WorkspaceConfig.
 pub fn parse_directory(dir: &Path) -> Result<WorkspaceConfig> {
     let mut workspace = WorkspaceConfig::default();
 
-    let entries = std::fs::read_dir(dir)?;
-    let mut tf_files: Vec<std::path::PathBuf> = entries
+    let all_entries: Vec<std::path::PathBuf> = std::fs::read_dir(dir)?
         .filter_map(|e| e.ok())
         .map(|e| e.path())
+        .collect();
+
+    // Collect .tf files (native HCL)
+    let mut tf_files: Vec<std::path::PathBuf> = all_entries
+        .iter()
         .filter(|p| p.extension().map(|e| e == "tf").unwrap_or(false))
+        .cloned()
         .collect();
     tf_files.sort();
 
-    if tf_files.is_empty() {
-        anyhow::bail!("No .tf files found in directory: {}", dir.display());
+    // Collect .tf.json files
+    let mut tf_json_files: Vec<std::path::PathBuf> = all_entries
+        .iter()
+        .filter(|p| {
+            p.file_name()
+                .and_then(|n| n.to_str())
+                .map(|n| n.ends_with(".tf.json"))
+                .unwrap_or(false)
+        })
+        .cloned()
+        .collect();
+    tf_json_files.sort();
+
+    if tf_files.is_empty() && tf_json_files.is_empty() {
+        anyhow::bail!(
+            "No .tf or .tf.json files found in directory: {}",
+            dir.display()
+        );
     }
 
+    // Parse .tf files first, then .tf.json files (matches Terraform behavior)
     for file in &tf_files {
         tracing::debug!("Parsing HCL file: {}", file.display());
         let content = std::fs::read_to_string(file)?;
         let partial = parser::parse_hcl(&content, file)?;
+        merge_workspace(&mut workspace, partial);
+    }
+
+    for file in &tf_json_files {
+        tracing::debug!("Parsing tf.json file: {}", file.display());
+        let content = std::fs::read_to_string(file)?;
+        let partial = json_parser::parse_tf_json(&content, file)?;
         merge_workspace(&mut workspace, partial);
     }
 
