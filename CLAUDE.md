@@ -103,3 +103,10 @@ This project uses **bd (beads)** for issue tracking — not markdown TODOs. See 
 ## Commit Style
 
 Conventional prefixes: `feat:`, `fix:`, `chore:`, `docs:`. Imperative mood, under 72 chars. Mention proto changes, migrations, or new binaries in the body.
+
+## Active Technologies
+- Rust 1.93+ (pinned via mise.toml) + hcl-rs 0.18, serde_json (already in Cargo.toml) (001-tf-json-parsing)
+- N/A (no state changes) (001-tf-json-parsing)
+
+## Recent Changes
+- 001-tf-json-parsing: Added Rust 1.93+ (pinned via mise.toml) + hcl-rs 0.18, serde_json (already in Cargo.toml)

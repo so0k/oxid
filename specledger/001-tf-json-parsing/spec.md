@@ -107,7 +107,7 @@ A developer has a malformed `.tf.json` file (syntax error, invalid structure, wr
 
 This feature references the Terraform JSON Configuration Syntax specification. Consider using `sl deps add` to add the external specification as a reference dependency.
 
-Detailed research on the Terraform JSON spec, Rust ecosystem survey, and CDKTF fixture analysis is in [`tf-json-research.md`](tf-json-research.md).
+Detailed research on the Terraform JSON spec, Rust ecosystem survey, and CDKTF fixture analysis is in [`research.md`](research.md).
 
 ### Previous work
 
