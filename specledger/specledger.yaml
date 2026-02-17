@@ -1,0 +1,22 @@
+version: 1.0.0
+project:
+    name: oxid
+    short_code: ox
+    created: 2026-02-17T12:34:44.181431+08:00
+    modified: 2026-02-17T12:34:44.181432+08:00
+    version: 0.1.0
+playbook:
+    name: specledger
+    version: 1.0.0
+    applied_at: 2026-02-17T12:34:44.181431+08:00
+    structure:
+        - .beads/
+        - .claude/
+        - .gitattributes
+        - AGENTS.md
+        - mise.toml
+        - .specledger/
+task_tracker:
+    choice: beads
+    enabled_at: 2026-02-17T12:34:44.181431+08:00
+artifact_path: specledger/
