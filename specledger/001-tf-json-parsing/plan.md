@@ -29,7 +29,7 @@ Add native parsing of `*.tf.json` files (Terraform JSON Configuration Syntax) to
 - [x] **UX Consistency**: Acceptance scenarios defined for all 3 user stories; output identical to `.tf` parsing
 - [x] **Performance**: Same parsing pipeline as `.tf` files; JSON→Body conversion adds negligible overhead
 - [x] **Observability**: Existing `tracing::debug!("Parsing HCL file: ...")` pattern extended to `.tf.json` files
-- [ ] **Issue Tracking**: Beads epic to be created during task generation phase
+- [x] **Issue Tracking**: Beads epic oxid-db0 created with 5 phases, 16 tasks
 
 **Complexity Violations**: None identified. Single new file, minimal edits to 2 existing files.
 
